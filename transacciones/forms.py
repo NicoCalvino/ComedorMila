@@ -12,6 +12,7 @@ class TransaccionCompraForm(forms.ModelForm):
             'placeholder': 'Ej: 123',
             'autofocus': 'autofocus',
             'pattern': '[0-9-]*',
+            'autocomplete': 'off',
             'title': 'Solo números y guiones'
         })
     )
@@ -48,9 +49,10 @@ class TransaccionCompraForm(forms.ModelForm):
         monto_decimal = Decimal(str(monto))
 
         nuevo_saldo = tarjeta_obj.saldo - monto_decimal
+        limite_descubierto = Decimal(tarjeta_obj.cliente.limite)
 
-        if nuevo_saldo < Decimal('-2000'):
-            self.add_error('numero_tarjeta', "Saldo insuficiente")
+        if nuevo_saldo < -Decimal(limite_descubierto):
+            self.add_error('numero_tarjeta', f"Saldo insuficiente")
 
         cleaned_data['tarjeta_objeto'] = tarjeta_obj
         cleaned_data['nuevo_saldo_tarjeta'] = nuevo_saldo
@@ -103,6 +105,7 @@ class TransaccionCargaForm(forms.ModelForm):
             'class': 'form-control',
             'placeholder': 'Ej: 123',
             'pattern': '[0-9-]*',
+            'autocomplete': 'off',
             'autofocus': 'autofocus',
             'title': 'Solo números y guiones'
         })

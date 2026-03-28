@@ -211,6 +211,8 @@ __marimo__/
 !/media/yo.png
 
 notas.txt
+Logica Menu.txt
+generador_base.py
 
 archivo_usuarios.xlsx
 armado_archivos_para_subir.xlsm
@@ -218,6 +220,23 @@ cursos.xlsx
 precios.xlsx
 vales.xlsx
 MOCK_DATA.xlsx
+
+1_padres.xlsx
+2_alumnos.xlsx
+3_vales_mensuales.xlsx
+4_vales_diarios.xlsx
+Archivo Menu.xlsx
+cursos.xlsx
+Menues.xlsx
+precios.xlsx
+
+1_padres.csv
+2_alumnos.csv
+3_vales_mensuales.csv
+4_vales_diarios.csv
+armado_archivos_para_subir.xlsm
+ProcesoArchivosCSV.xlsm
+
 
 inicio.bat
 reset_db.py

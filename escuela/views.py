@@ -27,6 +27,10 @@ class ClienteOwnerRequiredMixin(UserPassesTestMixin):
 class EscuelaHomeView(SuperUserRequiredMixin, TemplateView):
     template_name = "escuela/home.html"
 
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+
 # Vistas de Escuelas
 class ColegioListView(SuperUserRequiredMixin, ListView):
     model = Colegio
@@ -36,6 +40,10 @@ class ColegioListView(SuperUserRequiredMixin, ListView):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 class ColegioCreateView(SuperUserRequiredMixin, CreateView):
     model = Colegio
@@ -48,11 +56,19 @@ class ColegioCreateView(SuperUserRequiredMixin, CreateView):
         # Esto asegura que 'colegios' esté disponible incluso si el form falla
         context["colegios"] = Colegio.objects.all()
         return context
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 class ColegioDeleteView(SuperUserRequiredMixin, DeleteView):
     model = Colegio
     template_name = "escuela/colegios.html"
     success_url = reverse_lazy("colegios")
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 # Vistas de Cursos
 
@@ -104,6 +120,10 @@ class CursoListView(SuperUserRequiredMixin, ListView):
         context['colegios_list'] = Colegio.objects.all().order_by('nombre')
         
         return context
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 class NuevoCursoView(SuperUserRequiredMixin, CreateView):
     model = Curso
@@ -118,6 +138,10 @@ class NuevoCursoView(SuperUserRequiredMixin, CreateView):
             return reverse_lazy('nuevo_curso')    
         return reverse_lazy("lista_cursos")
     
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+    
 class CursoUpdateView(SuperUserRequiredMixin, UpdateView):
     model = Curso
     template_name = "escuela/nuevo_curso.html"
@@ -130,10 +154,18 @@ class CursoUpdateView(SuperUserRequiredMixin, UpdateView):
             "lista_cursos"
             )
     
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+
 class CursoDeleteView(SuperUserRequiredMixin, DeleteView):
     model = Curso
     template_name = "escuela/confirm_delete.html"
     success_url = reverse_lazy("lista_cursos")
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 class ImportarCursosView(SuperUserRequiredMixin, View):
     def post(self, request, *args, **kwargs):
@@ -195,6 +227,10 @@ class ImportarCursosView(SuperUserRequiredMixin, View):
     
     def get(self, request, *args, **kwargs):
         return redirect('lista_cursos')
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 # Vistas de Clientes
 class ListaClientesView(SuperUserRequiredMixin, ListView):
@@ -231,6 +267,10 @@ class ListaClientesView(SuperUserRequiredMixin, ListView):
             queryset = queryset.order_by(criterio)
 
         return queryset
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
     
 class CrearClienteView(LoginRequiredMixin, CreateView):
     model = Cliente
@@ -314,7 +354,7 @@ class ImportarClientesView(SuperUserRequiredMixin, View):
                     colegio_obj = Colegio.objects.get(nombre=nombre_colegio)
                     curso_obj = Curso.objects.get(curso=nombre_curso, colegio=colegio_obj)
                     
-                    if Cliente.objects.filter(usuario=usuario_obj, nombre=nombre, apellido=apellido, curso=curso_obj).exists():
+                    if Cliente.objects.filter(usuario=usuario_obj, nombre=nombre, apellido=apellido).exists():
                         resultados['errores'].append({
                             'fila': index + 2,
                             'identificador': f"{nombre} - {apellido}",
@@ -358,3 +398,7 @@ class ImportarClientesView(SuperUserRequiredMixin, View):
     
     def get(self, request, *args, **kwargs):
         return redirect('lista_clientes')
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino

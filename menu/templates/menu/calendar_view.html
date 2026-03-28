@@ -1,0 +1,103 @@
+{% extends 'main/index.html' %}
+
+{% block Bienvenida %}
+
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="text-center mb-4 text-muted">Menú Comedor</h2>
+
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-bordered align-middle mb-0 bg-white">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width: 20%;">LUNES</th>
+                    <th style="width: 20%;">MARTES</th>
+                    <th style="width: 20%;">MIÉRCOLES</th>
+                    <th style="width: 20%;">JUEVES</th>
+                    <th style="width: 20%;">VIERNES</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for semana in semanas %}
+                <tr>
+                    {% for dia in semana %}
+                    <td class="p-3 {% if dia.fecha == hoy %}es-hoy shadow-sm{% endif %} {% if dia.feriado %}bg-warning-subtle{% endif %}" style="vertical-align: top; min-height: 150px;">
+                        {% if dia %}
+                            {% if dia.fecha == hoy %}
+                                <span class="badge bg-primary position-absolute end-0 top-0 m-1" style="font-size: 0.5rem;">HOY</span>
+                            {% endif %}
+
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="fw-bold 
+                                    {% if dia.fecha == hoy %}text-white bg-primary px-2 rounded
+                                    {% elif dia.feriado %}text-danger
+                                    {% else %}text-primary{% endif %}">
+                                    {{ dia.fecha|date:"d/m" }}
+                                </small>
+                                
+                                {% if dia.feriado %}
+                                    <span class="badge rounded-pill bg-danger d-inline-flex align-items-center justify-content-center px-2 py-1" 
+                                        style="font-size: 0.65rem; min-width: 50px; height: 18px; line-height: 1;">
+                                        FERIADO
+                                    </span>
+                                {% endif %}
+                            </div>
+                                                    
+                            <div class="menu-content">
+                                {% if dia.feriado %}
+                                    <div class="text-center py-2">
+                                        <i class="bi bi-calendar2-check text-danger"></i>
+                                        <p class="mb-1 text-danger fw-bold">{{ dia.feriado.nombre }}</p>
+                                    </div>
+                                {% elif dia.menu %}
+                                    {% if dia.menu.plato_principal %}<p class="mb-1"><strong>Plato Principal:</strong><br> <span class="text-muted">{{ dia.menu.plato_principal }}</span></p>{% endif %}
+                                    {% if dia.menu.plato_alternativo %}<p class="mb-1"><strong>Alt:</strong><br> <span class="text-muted">{{ dia.menu.plato_alternativo }}</span></p>{% endif %}
+                                    {% if dia.menu.postre %}<p class="mb-1"><strong>Postre:</strong><br> <span class="text-muted">{{ dia.menu.postre }}</span></p>{% endif %}
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <small class="text-muted italic">Sin menú</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="bi bi-calendar-x display-4 d-block mb-2"></i>
+                        No hay menús programados.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="text-center mt-5">
+        <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Comedor
+        </a>
+    </div>
+</div>
+
+<style>
+    .table-bordered th, .table-bordered td {
+        border: 1px solid #dee2e6 !important;
+    }
+    .menu-content p {
+        font-size: 0.85rem;
+        line-height: 1.2;
+    }
+    thead th {
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+    tr:hover td {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}

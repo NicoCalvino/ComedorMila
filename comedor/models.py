@@ -19,7 +19,7 @@ class Precio(models.Model):
     precio = models.DecimalField(max_digits=8, decimal_places=2)
 
     def __str__(self):
-        return f"{self.escuela} - {self.alm_por_sem} por semana - $ {self.precio}"
+        return f"{self.nivel} - {self.alm_por_sem} por semana - $ {self.precio}"
 
 class ValeMensual(models.Model):
     usuario = models.ForeignKey(Perfil, on_delete=models.CASCADE, null=False)
@@ -29,7 +29,7 @@ class ValeMensual(models.Model):
     miercoles = models.BooleanField(default=False)
     jueves = models.BooleanField(default=False)
     viernes = models.BooleanField(default=False)
-    comentarios = models.CharField(max_length=50, null=True, blank=True)
+    comentarios = models.CharField(max_length=50, null=True, blank=True, default="")
 
     def __str__(self):
         return f"Vale Mensual de {self.usuario}"
@@ -37,13 +37,29 @@ class ValeMensual(models.Model):
 class ValeDiario(models.Model):
     usuario = models.ForeignKey(Perfil, on_delete=models.CASCADE, null=False)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=False)
-    fecha = models.DateField(default=False)
+    fecha = models.DateField(null=False)
     cancelado = models.BooleanField(default=False)
-    comentarios = models.CharField(max_length=50, null=True, blank=True)
+    comentarios = models.CharField(max_length=50, null=True, blank=True, default="")
     comprobante = models.ImageField(
         upload_to=picture_upload_to,
-        verbose_name="Picture"
+        verbose_name="Picture",
+        default= "default/noticket.png",
+        null=True,
+        blank=True
     )
 
     def __str__(self):
         return f"Vale Diario de {self.usuario} para el día {self.fecha}"
+    
+class Asistencia(models.Model):
+    fecha = models.DateField(null=False)
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, null=False)
+    turno = models.CharField(max_length=30)
+    asistio= models.BooleanField()
+
+    class Meta:
+        unique_together = ('fecha', 'cliente')
+
+    def __str__(self):
+        return f"Asistencia {self.cliente} para el día {self.fecha}"
+

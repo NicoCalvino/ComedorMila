@@ -1,4 +1,5 @@
 from django.views.generic import ListView, DeleteView, DetailView, UpdateView, CreateView
+from django.shortcuts import redirect
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -39,6 +40,8 @@ class ProductoListView(ListView):
             )
 
         return queryset
+    
+    
 
 # Detalle de Producto
 class ProductoDetailView(LoginRequiredMixin, DetailView):
@@ -63,6 +66,10 @@ class ProductoCreateView(SuperUserRequiredMixin, CreateView):
             "detalle_producto",
              kwargs={"code":self.object.code}
             )
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 # Lista de Productos
 class ProductoUpdateView(SuperUserRequiredMixin, UpdateView):
@@ -77,9 +84,17 @@ class ProductoUpdateView(SuperUserRequiredMixin, UpdateView):
             "detalle_producto",
             kwargs={"code":self.object.code}
             )
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 # Eliminar Producto
 class ProductoDeleteView(SuperUserRequiredMixin, DeleteView):
     model = Producto
     template_name = "productos/confirm_delete.html"
     success_url = reverse_lazy("lista_productos")
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino

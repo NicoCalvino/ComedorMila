@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -23,15 +23,29 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-(0#unw-n0(@ar(0va)x1&kmcal1%3ru)o6y0!)8z#5jlvg(aqm'
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# DEBUG = False - Ajuste de Lanzamiento
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ['yourdomain.com', 'your-server-ip'] - Ajuste de Lanzamiento
+ALLOWED_HOSTS = [
+    '*', 
+    'thirstless-carolynn-unpitied.ngrok-free.dev', 
+    '127.0.0.1', 
+    'localhost']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://thirstless-carolynn-unpitied.ngrok-free.dev',
+]
 
 # Application definition
 
 INSTALLED_APPS = [
     'users',
+    'admin_honeypot',
+    'axes',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,6 +59,16 @@ INSTALLED_APPS = [
     'transacciones',
     'comedor',
     'escuela',
+    'menu'
+]
+
+AUTHENTICATION_BACKENDS = [
+    # Axes debe ir primero para poder bloquear antes de que Django autentique
+    'axes.backends.AxesStandaloneBackend',
+    
+    # El backend por defecto de Django
+    'django.contrib.auth.backends.ModelBackend',
+    
 ]
 
 MIDDLEWARE = [
@@ -55,6 +79,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
+    'django_otp.middleware.OTPMiddleware',
+    'main.middleware.StaffOTPRequiredMiddleware'
 ]
 
 ROOT_URLCONF = 'kiosco_sole.urls'
@@ -62,10 +89,11 @@ ROOT_URLCONF = 'kiosco_sole.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.request',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -123,6 +151,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Defaul primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -130,10 +159,18 @@ STATIC_URL = 'static/'
 
 AUTH_USER_MODEL = "users.Perfil"
 
-
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+# Configuraciones de Axes
+AXES_FAILURE_LIMIT = 5            # Bloquea al 5to intento fallido
+AXES_COOLOFF_TIME = 1             # El bloqueo dura 1 hora (en horas)
+AXES_USERNAME_FORM_FIELD = 'username'
+AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Bloquea la dupla Usuario+IP
+AXES_RESET_ON_SUCCESS = True      # Si se loguea bien, se resetea el contador
+
+AXES_LOCKOUT_URL = '/acceso-denegado/'

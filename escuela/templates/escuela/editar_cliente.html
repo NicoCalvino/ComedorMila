@@ -1,6 +1,6 @@
 {% extends 'main/index.html' %}
 
-{% block titulo %}<title>Kiosco Sole - Nueva Alumna</title> {% endblock %}
+{% block titulo %}<title>Comedor Mila - Nueva Alumna</title> {% endblock %}
 
 {% block Bienvenida %} {% endblock %}
 
@@ -63,17 +63,41 @@
                                 {{ form.colegio }}
                             </div>
                         </div>
-
-                        <div class="col-12 mt-3">
-                            <label for="{{ form.curso.id_for_label }}" class="form-label fw-bold text-dark small">Curso / Año</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-mortarboard"></i></span>
-                                {{ form.curso }}
+                        
+                        {% if user.is_superuser %}
+                            <div class="col-md-6">
+                                <label for="{{ form.curso.id_for_label }}" class="form-label fw-bold text-dark small">Curso / Año</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-mortarboard"></i></span>
+                                    {{ form.curso }}
+                                </div>
+                                {% if form.curso.errors %}
+                                    <div class="text-danger small mt-1 ps-1">{{ form.curso.errors }}</div>
+                                {% endif %}
                             </div>
-                            {% if form.curso.errors %}
-                                <div class="text-danger small mt-1 ps-1">{{ form.curso.errors }}</div>
-                            {% endif %}
-                        </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.curso.id_for_label }}" class="form-label fw-bold text-dark small">Limite Descubierto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-mortarboard"></i></span>
+                                    {{ form.limite }}
+                                </div>
+                                {% if form.limite.errors %}
+                                    <div class="text-danger small mt-1 ps-1">{{ form.limite.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="col-12 mt-3">
+                                <label for="{{ form.curso.id_for_label }}" class="form-label fw-bold text-dark small">Curso / Año</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-mortarboard"></i></span>
+                                    {{ form.curso }}
+                                </div>
+                                {% if form.curso.errors %}
+                                    <div class="text-danger small mt-1 ps-1">{{ form.curso.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
 
                     </div>
 

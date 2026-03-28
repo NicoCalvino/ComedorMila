@@ -56,7 +56,7 @@ Pasos para probar el proyecto.
 13) Bajar hasta el footer y hacer click en el boton "Acerca de Mi".
     Se cargara una pagina con la informacion personal
 
-14) Hacer click en "Kiosco Sole" o "Home" en el navbar para volver al inicio
+14) Hacer click en "Comedor Mila" o "Home" en el navbar para volver al inicio
 
 13) Hacer Click en "Quiero Registrarme" en el body o en "Registrarse" en el navbar y crearse un usuario
     Anotar el nombre de usuario elegido y la contraseña ya que posteriormente sera necesario volver a utilizarlos
@@ -72,7 +72,7 @@ Pasos para probar el proyecto.
 
 15) Desde "Editar Perfil" tambien podemos acceder a la pagina para cambiar nuestra contraseña. El boton se encuentra a la izquierda de los botones "Cancelar" y "Guardar Cambios"
 
-16) Hacer click en "Kiosco Sole" o "Home" en el navbar para volver al inicio
+16) Hacer click en "Comedor Mila" o "Home" en el navbar para volver al inicio
 
 17) Hacer click en "Crear Cliente" en el navbar o "Crear mi primer cliente" en el body y completar un formulario para cargar un cliente. 
     Luego de crear el primer cliente, el home mostrara el cliente creado y un botón al lado para crear otro mas.
@@ -89,7 +89,7 @@ Pasos para probar el proyecto.
     Para corregir esto, hacemos click en el avatar (que seguramente sea la imagen por default) que nos llevara al pefil
     Alli luego ponemos "Editar Perfil" para completar la informacion que falte y posteriormente hacer click en "Guardar Cambios"
 
-22) Hacer click en "Kiosco Sole" o "Home" en el navbar para volver al inicio
+22) Hacer click en "Comedor Mila" o "Home" en el navbar para volver al inicio
 
 23) Entrar a "Usuarios". Por defecto en la lista apareceran solo los usuarios "Normales", 
     Hacer click en "Superusuarios" para cambiar el filtro

@@ -70,10 +70,12 @@ class ClienteForm(forms.ModelForm):
             "apellido",
             "colegio",
             "curso",
+            "limite",
         ]
         widgets = {
             'nombre':forms.TextInput(attrs={'class':'form-control'}),
             'apellido':forms.TextInput(attrs={'class':'form-control'}),
+            'limite':forms.NumberInput(attrs={'class':'form-control'}),
             'curso':forms.Select(attrs={'class':'form-control'}),
         }
     

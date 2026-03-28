@@ -1,0 +1,45 @@
+{% extends "main/index.html" %}
+
+{% block titulo %}<title>Verificación de Seguridad - Comedor Mila</title>{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-4 shadow-sm border-0">
+                <div class="text-center mb-4">
+                    <div class="icon-box text-warning" style="font-size: 4rem;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h2 class="fw-bold">Código de Acceso</h2>
+                    <p class="text-muted small">Por seguridad, ingresa el código de 6 dígitos de tu celular.</p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <input type="text" name="otp_token" id="otp_token" 
+                               class="form-control form-control-lg text-center fw-bold border-warning" 
+                               placeholder="000 000" maxlength="6" autofocus required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning fw-bold py-2 shadow-sm">
+                            Confirmar Identidad
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #otp_token {
+        letter-spacing: 5px;
+        font-size: 1.8rem;
+        background-color: #fffdf0;
+    }
+    .card-custom { border-radius: 15px; }
+</style>
+{% endblock %}

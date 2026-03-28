@@ -38,7 +38,10 @@ class SolicitudCarga(models.Model):
                             )
     comprobante = models.ImageField(
         upload_to=picture_upload_to,
-        verbose_name="Comprobante"
+        verbose_name="Comprobante",
+        default= "default/noticket.png",
+        null=True,
+        blank=True
     )
     estado = models.CharField(choices=ESTADOS, default="PENDIENTE")
 

@@ -1,17 +1,40 @@
 {% extends 'main/index.html' %}
 
-{% block Bienvenida %}
-
-{% endblock %}
+{% block Bienvenida %} {% endblock %}
 
 {% block content %}
 <div class="container py-5">
     
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
+            <i class="bi bi-arrow-left me-2"></i>Volver al Inicio
+        </a>
+        <a href="{% url 'asistencia_dia' %}" class="btn btn-success shadow-sm">
+            <i class="bi bi-check2-square me-2"></i>Ir a Tomar Asistencia
+        </a>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0">
-            <i class="bi bi-calendar-event-fill me-2 text-success"></i>
-            {% if fecha_consulta == today %} Hoy {% else %} Próximo Turno {% endif %}
-        </h2>
+        <div class="d-flex align-items-center gap-3">
+            <a href="?fecha={{ fecha_anterior }}&colegio={{ request.GET.colegio }}&nivel={{ request.GET.nivel }}&comentarios={{ request.GET.comentarios }}&origen={{ request.GET.origen }}" 
+            class="btn btn-outline-dark btn-sm rounded-circle">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+
+            <h2 class="fw-bold mb-0">
+                <i class="bi bi-calendar-event-fill me-2 text-success"></i>
+                {{ fecha_consulta|date:"l d \d\e F"|capfirst }}
+                {% if fecha_consulta == hoy %}
+                    <span class="badge bg-primary ms-2" style="font-size: 0.5em; vertical-align: middle;">HOY</span>
+                {% endif %}
+            </h2>
+
+            <a href="?fecha={{ fecha_siguiente }}&colegio={{ request.GET.colegio }}&nivel={{ request.GET.nivel }}&comentarios={{ request.GET.comentarios }}&origen={{ request.GET.origen }}" 
+            class="btn btn-outline-dark btn-sm rounded-circle">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+
         <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm">
             Total: {{ lista_asistencia|length }} Comensales
         </span>
@@ -19,30 +42,67 @@
 
     <div class="card shadow-sm border-0 mb-4 bg-light">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-8">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-person text-muted"></i></span>
-                        <input type="text" id="filterNombre" class="form-control border-start-0" placeholder="Buscar por nombre del alumno...">
-                    </div>
+            <form method="GET" action="" id="filterForm" class="row gx-2 gy-3 align-items-center justify-content-center">
+                
+                <div class="col-auto">
+                    <select name="colegio" class="form-select form-select-sm shadow-sm">
+                        <option value="">Todos los Colegios</option>
+                        {% for col in lista_colegios %}
+                            <option value="{{ col.id }}" {% if request.GET.colegio == col.id|stringformat:"i" %}selected{% endif %}>{{ col.nombre }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="col-md-4">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-mortarboard text-muted"></i></span>
-                        <input type="text" id="filterCurso" class="form-control border-start-0" placeholder="Filtrar por curso...">
-                    </div>
+
+                <div class="col-auto">
+                    <select name="nivel" class="form-select form-select-sm shadow-sm">
+                        <option value="">Todos los Niveles</option>
+                        <option value="JARDIN" {% if request.GET.nivel == 'JARDIN' %}selected{% endif %}>JARDÍN</option>
+                        <option value="PRIMARIA" {% if request.GET.nivel == 'PRIMARIA' %}selected{% endif %}>PRIMARIA</option>
+                        <option value="SECUNDARIA" {% if request.GET.nivel == 'SECUNDARIA' %}selected{% endif %}>SECUNDARIA</option>
+                    </select>
                 </div>
-            </div>
+
+                <div class="col-auto">
+                    <select name="comentarios" class="form-select form-select-sm shadow-sm">
+                        <option value="">Comentarios: Todos</option>
+                        <option value="si" {% if request.GET.comentarios == 'si' %}selected{% endif %}>Con Comentarios</option>
+                        <option value="no" {% if request.GET.comentarios == 'no' %}selected{% endif %}>Sin Comentarios</option>
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <select name="origen" class="form-select form-select-sm shadow-sm">
+                        <option value="">Origen: Todos</option>
+                        <option value="diario" {% if request.GET.origen == 'diario' %}selected{% endif %}>Diario</option>
+                        <option value="mensual" {% if request.GET.origen == 'mensual' %}selected{% endif %}>Mensual</option>
+                    </select>
+                </div>
+
+                <div class="col-auto ms-lg-3">
+                    <button type="submit" class="btn btn-dark btn-sm px-4 shadow-sm">
+                        <i class="bi bi-filter me-1"></i> Filtrar
+                    </button>
+                    <a href="{% url 'reporte_diario' %}" class="btn btn-outline-secondary btn-sm px-3 shadow-sm">
+                        <i class="bi bi-x-circle me-1"></i> Limpiar todo
+                    </a>
+                </div>
+            </form>
         </div>
     </div>
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
+            <div class="p-3 border-bottom bg-white d-flex gap-2">
+                <input type="text" id="filterNombre" class="form-control form-control-sm w-auto" placeholder="Buscar por nombre...">
+                <input type="text" id="filterCurso" class="form-control form-control-sm w-auto" placeholder="Curso...">
+            </div>
+
             <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
                 <table class="table table-hover align-middle mb-0" id="tablaAsistencia">
                     <thead>
                         <tr>
                             <th class="px-4 py-3">Alumno</th>
+                            <th class="text-center">Nivel</th>
                             <th class="text-center">Curso</th>
                             <th class="px-4">Comentarios / Notas</th>
                             <th class="text-center">Origen</th>
@@ -55,37 +115,29 @@
                                 <div class="fw-bold text-dark cell-nombre">{{ item.cliente.nombre }} {{ item.cliente.apellido }}</div>
                                 <small class="text-muted cell-usuario">{{ item.cliente.usuario|default:"Sin usuario" }}</small>
                             </td>
-                            
                             <td class="text-center">
-                                <span class="badge bg-light text-dark border cell-curso">{{ item.cliente.curso }}</span>
+                                <span class="small text-uppercase fw-bold text-muted cell-nivel">{{ item.cliente.curso.nivel|default:"-" }}</span>
                             </td>
-
+                            <td class="text-center">
+                                <span class="small text-uppercase fw-bold text-muted cell-curso">{{ item.cliente.curso.curso }}</span>
+                            </td>
                             <td class="px-4">
                                 <small class="text-muted italic">
                                     {{ item.comentarios|default:"-" }}
                                 </small>
                             </td>
-
                             <td class="text-center">
                                 {% if item.origen == 'Plan Mensual' %}
-                                    <span class="badge rounded-pill bg-warning text-dark px-3">
-                                        <i class="bi bi-calendar-month me-1"></i> Mensual
-                                    </span>
+                                    <span class="badge rounded-pill bg-warning text-dark px-3">Mensual</span>
                                 {% else %}
-                                    <span class="badge rounded-pill bg-info text-dark px-3">
-                                        <i class="bi bi-ticket-perforated me-1"></i> Diario
-                                    </span>
+                                    <span class="badge rounded-pill bg-info text-dark px-3">Diario</span>
                                 {% endif %}
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-5 text-muted">
-                                <div class="mb-3">
-                                    <i class="bi bi-clipboard-x fs-1"></i>
-                                </div>
-                                <h5>No hay comensales registrados para esta fecha.</h5>
-                                <p class="small">Verifica si es fin de semana o si no hay vales cargados.</p>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <h5>No hay comensales para este filtro.</h5>
                             </td>
                         </tr>
                         {% endfor %}
@@ -94,45 +146,34 @@
             </div>
         </div>
     </div>
-
-    <div class="mt-4 d-flex justify-content-between">
-        <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
-            <i class="bi bi-arrow-left me-2"></i>Volver al Menú
-        </a>
-        <button onclick="window.print()" class="btn btn-dark shadow-sm px-4">
-            <i class="bi bi-printer me-2"></i> Imprimir Lista
-        </button>
-    </div>
 </div>
 
 <script>
+    // Filtrado en tiempo real para Nombre y Curso (Local)
     const inputNombre = document.getElementById('filterNombre');
     const inputCurso = document.getElementById('filterCurso');
 
+    const norm = (text) => {
+        return text ? text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+    };
+
     function filtrarTabla() {
-        const queryNombre = inputNombre.value.toLowerCase();
-        const queryCurso = inputCurso.value.toLowerCase();
+        const queryNombre = norm(inputNombre.value);
+        const queryCurso = norm(inputCurso.value);
         const rows = document.querySelectorAll('.asistencia-row');
 
         rows.forEach(row => {
-            const nombreText = row.querySelector('.cell-nombre').textContent.toLowerCase();
-            const usuarioText = row.querySelector('.cell-usuario').textContent.toLowerCase();
-            const cursoText = row.querySelector('.cell-curso').textContent.toLowerCase();
+            const nombreText = norm(row.querySelector('.cell-nombre').textContent);
+            const usuarioText = norm(row.querySelector('.cell-usuario').textContent);
+            const cursoText = norm(row.querySelector('.cell-curso').textContent);
 
-            // Debe coincidir con AMBOS filtros (si están escritos)
-            const coincideNombre = nombreText.includes(queryNombre);
-            const coincideUsuario = usuarioText.includes(queryNombre);
-            const coincideCurso = cursoText.includes(queryCurso);
+            const coincideNombre = nombreText.includes(queryNombre) || usuarioText.includes(queryNombre);
+            const coincideCurso = cursoText.replace("°","").includes(queryCurso);
 
-            if ((coincideNombre || coincideUsuario) && coincideCurso) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+            row.style.display = (coincideNombre && coincideCurso) ? '' : 'none';
         });
     }
 
-    // Escuchar eventos en ambos inputs
     inputNombre.addEventListener('keyup', filtrarTabla);
     inputCurso.addEventListener('keyup', filtrarTabla);
 </script>
@@ -143,25 +184,17 @@
         top: 0;
         z-index: 10;
         background-color: #f8f9fa;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
         color: #6c757d;
         border-bottom: 2px solid #dee2e6;
     }
     .italic { font-style: italic; }
+    .form-select-sm { font-size: 0.85rem; min-width: 160px; }
     
     @media print {
-        .hero-section, .input-group, .btn, .mt-4 {
-            display: none !important;
-        }
-        .table-responsive {
-            overflow: visible !important;
-            max-height: none !important;
-        }
-        .card {
-            box-shadow: none !important;
-            border: none !important;
-        }
+        .btn, form, #filterNombre, #filterCurso, .justify-content-end { display: none !important; }
+        .table-responsive { overflow: visible !important; max-height: none !important; }
     }
 </style>
 {% endblock %}

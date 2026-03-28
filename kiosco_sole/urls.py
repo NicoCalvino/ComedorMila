@@ -15,19 +15,27 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django_otp.admin import OTPAdminSite
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
+from main.views import axes_lockout_view
+
+# Configuramos el admin para que requiera OTP
+admin.site.__class__ = OTPAdminSite
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('gestion-interna-sole/', admin.site.urls),
+    path('admin/', include('admin_honeypot.urls', namespace='admin_honeypot')),
     path("",include("main.urls")),
     path("kiosco/",include("kiosco.urls")),
     path("productos/",include("productos.urls")),
     path("users/", include("users.urls")),
     path("transacciones/", include("transacciones.urls")),
     path("comedor/", include("comedor.urls")),
-    path("escuela/", include("escuela.urls"))
+    path("escuela/", include("escuela.urls")),
+    path("menu/", include("menu.urls")),
+    path('acceso-denegado/', axes_lockout_view, name='axes_lockout')
 ]
 
 if settings.DEBUG:

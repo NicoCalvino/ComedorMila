@@ -1,0 +1,207 @@
+{% extends 'main/index.html' %}
+
+{% block Bienvenida %}
+
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    
+<div class="row mb-4">
+    
+    <div class="row mb-4">
+        <div class="col-12 d-flex flex-wrap gap-2 justify-content-center">
+            <a href="{% url 'lista_platos' %}" class="btn btn-primary px-4 shadow-sm border-0">
+                <i class="bi bi-plus-circle me-2"></i>Lista Platos
+            </a>
+            <a href="{%url 'crear_menu' %}" class="btn btn-generate px-4 shadow-sm border-0 text-white">
+                <i class="bi bi-calendar-plus me-2"></i>Crear Menú
+            </a>
+            <a href="#" class="btn btn-excel px-4 shadow-sm border-0 text-white">
+                <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
+            </a>
+        </div>
+    </div>
+
+    <div class="card card-custom p-4 mb-4 border-0 shadow-sm">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" id="filterNombre" class="form-control border-start-0" placeholder="Buscar por plato o postre...">
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <select id="filterDia" class="form-select">
+                    <option value="">Todos los días</option>
+                    <option value="LUNES">Lunes</option>
+                    <option value="MARTES">Martes</option>
+                    <option value="MIERCOLES">Miércoles</option>
+                    <option value="JUEVES">Jueves</option>
+                    <option value="VIERNES">Viernes</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <div class="d-flex gap-2">
+                    <input type="date" id="fechaInicio" class="form-control form-control-sm" title="Fecha Inicio">
+                    <input type="date" id="fechaFin" class="form-control form-control-sm" title="Fecha Fin">
+                </div>
+            </div>
+
+            <div class="col-12 d-flex gap-2 justify-content-center mt-2">
+                <button type="button" class="btn btn-sm btn-quick-filter" onclick="setPeriod(-30, 0)">Último Mes</button>
+                <button type="button" class="btn btn-sm btn-quick-filter" onclick="setPeriod(-21, 0)">Últimas 3 semanas</button>
+                <button type="button" class="btn btn-sm btn-quick-filter" onclick="setPeriod(0, 21)">Próximas 3 Semanas</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFechas()">Limpiar Fechas</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive card card-custom shadow-sm">
+        <table class="table table-hover align-middle mb-0" id="tableMenu">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Fecha</th>
+                    <th>Día</th>
+                    <th>Plato Principal</th>
+                    <th>Plato Alternativo</th>
+                    <th>Postre</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in menus %}
+                <tr class="menu-row">
+                    <td class="ps-4 fw-bold text-muted">{{ item.fecha|date:"d/m/Y" }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ item.get_dia_display }}</span></td>
+                    <td class="plato-name">{{ item.plato_principal.nombre }}</td>
+                    <td class="plato-name">{{ item.plato_alternativo.nombre }}</td>
+                    <td class="plato-name">{{ item.postre.nombre }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'editar_menu' item.id %}" class="btn btn-sm btn-outline-primary border-0">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                        No hay menús registrados aún.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <a href={% url 'calendar_view' %}>Calendario</a>
+    <div class="text-center mt-5">
+        <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
+            <i class="bi bi-arrow-left me-2"></i>Volver a Comedor
+        </a>
+    </div>
+</div>
+
+<script>
+    // Función principal de filtrado
+    function filtrarTabla() {
+        const nombreSearch = document.getElementById('filterNombre').value.toLowerCase();
+        const diaSearch = document.getElementById('filterDia').value.toUpperCase();
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin = document.getElementById('fechaFin').value;
+        
+        const rows = document.querySelectorAll('.menu-row');
+
+        rows.forEach(row => {
+            const rowText = row.innerText.toLowerCase();
+            const diaCell = row.querySelector('td:nth-child(2)').innerText.toUpperCase();
+            
+            // Obtener fecha de la fila (formato d/m/Y) y convertirla a objeto Date para comparar
+            const fechaStr = row.querySelector('td:nth-child(1)').innerText.trim();
+            const [day, month, year] = fechaStr.split('/');
+            const rowDate = new Date(year, month - 1, day);
+
+            // Lógica de coincidencia
+            const matchesNombre = rowText.includes(nombreSearch);
+            const matchesDia = diaSearch === "" || diaCell.includes(diaSearch);
+            
+            let matchesFecha = true;
+            if (fechaInicio) {
+                matchesFecha = matchesFecha && rowDate >= new Date(fechaInicio + "T00:00:00");
+            }
+            if (fechaFin) {
+                matchesFecha = matchesFecha && rowDate <= new Date(fechaFin + "T23:59:59");
+            }
+
+            row.style.display = (matchesNombre && matchesDia && matchesFecha) ? "" : "none";
+        });
+    }
+
+    // Eventos para disparar el filtro
+    document.addEventListener('keyup', filtrarTabla);
+    document.getElementById('filterDia').addEventListener('change', filtrarTabla);
+    document.getElementById('fechaInicio').addEventListener('change', filtrarTabla);
+    document.getElementById('fechaFin').addEventListener('change', filtrarTabla);
+
+    // Funciones para filtros rápidos
+    function setPeriod(daysStart, daysEnd) {
+        const now = new Date();
+        const start = new Date();
+        const end = new Date();
+
+        start.setDate(now.getDate() + daysStart);
+        end.setDate(now.getDate() + daysEnd);
+
+        document.getElementById('fechaInicio').value = start.toISOString().split('T')[0];
+        document.getElementById('fechaFin').value = end.toISOString().split('T')[0];
+        
+        filtrarTabla();
+    }
+
+    function resetFechas() {
+        document.getElementById('fechaInicio').value = "";
+        document.getElementById('fechaFin').value = "";
+        filtrarTabla();
+    }
+</script>
+
+<style>
+    .card-custom:hover {
+        transform: translateY(0px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Estilo para el botón de Generar Menú (Naranja) */
+    .btn-generate {
+        background-color: #fd7e14;
+        transition: all 0.3s ease;
+    }
+    .btn-generate:hover {
+        background-color: #e36a02; /* Naranja más oscuro */
+        color: white;
+    }
+
+    /* Estilo para el botón de Excel (Verde) */
+    .btn-excel {
+        background-color: #1D6F42;
+        transition: all 0.3s ease;
+    }
+    .btn-excel:hover {
+        background-color: #155231; /* Verde más oscuro */
+        color: white;
+    }
+
+    /* Estilos generales que ya tenías */
+    .table thead th {
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        border-bottom: 2px solid #eee;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #fd7e14;
+        box-shadow: 0 0 0 0.25rem rgba(253, 126, 20, 0.25);
+    }
+</style>
+{% endblock %}

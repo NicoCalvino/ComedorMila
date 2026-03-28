@@ -1,0 +1,162 @@
+{% extends 'main/index.html' %}
+
+{% block Bienvenida %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="h4 text-muted mb-0"><i class="bi bi-calendar-event me-2" style="color: #6f42c1;"></i>Gestión de Feriados</h2>
+            <a href="{% url 'lista_feriados' %}" class="btn btn-violet text-white shadow-sm border-0">
+                <i class="bi bi-list-ul me-2"></i>Ver Listado
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            
+            <div class="card card-custom shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="icon-box-violet">
+                            <i class="bi bi-calendar-plus"></i>
+                        </div>
+                        <h2 class="fw-bold" style="color: #6f42c1;">{% if form.instance.pk %}Editar{% else %}Crear{% endif %} Feriado</h2>
+                        <p class="text-muted small text-uppercase" style="letter-spacing: 1px;">Registra un día no laborable en el sistema</p>
+                    </div>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger shadow-sm" role="alert">
+                            {% for error in form.non_field_errors %}
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.fecha.id_for_label }}" class="form-label fw-bold small text-uppercase">
+                                    <i class="bi bi-calendar-check me-2"></i>Fecha del Feriado
+                                </label>
+                                {{ form.fecha }}
+                                {% if form.fecha.errors %}<div class="text-danger small mt-1">{{ form.fecha.errors }}</div>{% endif %}
+                            </div>
+
+                            <div class="col-md-12 mb-4">
+                                <label for="{{ form.nombre.id_for_label }}" class="form-label fw-bold small text-uppercase">
+                                    <i class="bi bi-bookmark-star me-2"></i>Nombre / Motivo
+                                </label>
+                                {{ form.nombre }}
+                                {% if form.nombre.errors %}<div class="text-danger small mt-1">{{ form.nombre.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-2">
+                            {% if form.instance.pk %}
+                                <button type="submit" class="btn btn-violet btn-lg text-white shadow-sm border-0">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Actualizar Feriado
+                                </button>
+                            {% else %}
+                                <button type="submit" name="_save" class="btn btn-violet btn-lg text-white shadow-sm border-0">
+                                    <i class="bi bi-check-circle me-2"></i>Guardar Feriado
+                                </button>
+                                
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <button type="submit" name="_addanother" class="btn btn-outline-violet w-100 fw-bold">
+                                            <i class="bi bi-plus-lg me-2"></i>Guardar y Otro
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <a href="{% url 'lista_feriados' %}" class="btn btn-outline-secondary w-100">
+                                            Cancelar
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'lista_feriados' %}" class="btn btn-link text-muted text-decoration-none small">
+                    <i class="bi bi-arrow-left me-2"></i>Volver al listado de feriados
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Card y Contenedores */
+    .card-custom {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+    }
+    .card-custom:hover {
+        transform: translateY(0px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    }
+    .icon-box-violet {
+        background: rgba(111, 66, 193, 0.1); /* Violeta muy claro */
+        color: #6f42c1;
+        width: 70px;
+        height: 70px;
+        line-height: 70px;
+        border-radius: 50%;
+        margin: 0 auto 15px;
+        font-size: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Botón Sólido Violeta */
+    .btn-violet {
+        background-color: #6f42c1;
+        transition: all 0.3s ease;
+        color: white;
+    }
+    .btn-violet:hover {
+        background-color: #59359a;
+        color: white;
+        transform: scale(1.02);
+    }
+
+    /* Botón Outline Violeta */
+    .btn-outline-violet {
+        color: #6f42c1;
+        border-color: #6f42c1;
+        transition: all 0.3s ease;
+    }
+    .btn-outline-violet:hover {
+        background-color: #6f42c1;
+        color: white;
+    }
+
+    /* Inputs con foco violeta */
+    .form-control:focus, select:focus {
+        border-color: #6f42c1;
+        box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.25);
+    }
+
+    .form-label {
+        color: #6c757d;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+
+    /* Ajuste para que los inputs se vean como en el ejemplo anterior */
+    .form-control {
+        padding: 0.75rem;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}

@@ -1,7 +1,6 @@
 {% extends 'main/index.html' %}
 
 {% block Bienvenida %}
-
 {% endblock %}
 
 {% block content %}
@@ -9,9 +8,42 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold mb-0"><i class="bi bi-calendar-check-fill me-2 text-warning"></i>Anotados Vigentes</h2>
-        <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm">
-            Total: {{ vales|length }} Clientes
-        </span>
+        
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadExcelModal">
+                <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
+            </button>
+            <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm d-flex align-items-center">
+                Total: {{ vales|length }} Clientes
+            </span>
+        </div>
+    </div>
+
+    <div class="modal fade" id="uploadExcelModal" tabindex="-1" aria-labelledby="uploadExcelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="uploadExcelModalLabel">Importar Anotados desde Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{% url 'importar_vales_mensuales' %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body py-4">
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle me-1"></i> El archivo debe contener: <b>mail_usuario, nombre_cliente, apellido_cliente, lunes, martes, miercoles, jueves, viernes y comentarios</b>.
+                        </div>
+                        <div class="input-group">
+                            <input type="file" name="archivo_excel" class="form-control" id="inputGroupFile02" accept=".xlsx, .xls" required>
+                            <label class="input-group-text bg-light" for="inputGroupFile02"><i class="bi bi-cloud-upload"></i></label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4">Cargar Información</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0 mb-4 bg-light">
@@ -46,7 +78,6 @@
                                 <div class="fw-bold text-dark cell-nombre">{{ vale.cliente.nombre }} {{ vale.cliente.apellido }}</div>
                                 <small class="text-muted">{{ vale.usuario }}</small>
                             </td>
-                            
                             <td class="text-center">
                                 {% if vale.lunes %}<i class="bi bi-check-circle-fill text-warning fs-5"></i>{% else %}<i class="bi bi-dash text-light"></i>{% endif %}
                             </td>
@@ -62,11 +93,9 @@
                             <td class="text-center">
                                 {% if vale.viernes %}<i class="bi bi-check-circle-fill text-warning fs-5"></i>{% else %}<i class="bi bi-dash text-light"></i>{% endif %}
                             </td>
-
                             <td class="px-4">
                                 <small class="text-muted italic">{{ vale.comentarios|default:"-" }}</small>
                             </td>
-
                             <td class="text-end px-4">
                                 <a href="{% url 'ver_cliente' vale.cliente.pk %}" class="btn btn-sm btn-dark rounded-pill px-3 shadow-sm">
                                     <i class="bi bi-eye me-1"></i> Ver Detalle
@@ -99,10 +128,7 @@
         const rows = document.querySelectorAll('.vale-row');
         
         rows.forEach(row => {
-            // Seleccionamos la primera celda (donde están nombre y usuario)
             const cellInfo = row.querySelector('td:first-child').textContent.toLowerCase();
-            
-            // Si el query está en el nombre O en el usuario (ambos están en cellInfo), se muestra
             row.style.display = cellInfo.includes(query) ? '' : 'none';
         });
     });
@@ -113,7 +139,7 @@
         position: sticky;
         top: 0;
         z-index: 10;
-        background-color: #f8f9fa; /* Color de fondo del header */
+        background-color: #f8f9fa;
         font-size: 0.8rem;
         text-transform: uppercase;
         color: #6c757d;
@@ -121,7 +147,6 @@
         box-shadow: inset 0 -1px 0 #dee2e6;
     }
     .italic { font-style: italic; }
-    /* Estilo del botón para que resalte con el amarillo */
     .btn-dark {
         background-color: #212529;
         border: none;

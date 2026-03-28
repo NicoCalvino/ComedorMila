@@ -8,9 +8,42 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold mb-0"><i class="bi bi-ticket-perforated-fill me-2 text-warning"></i>Tickets Registrados</h2>
-        <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm">
-            Total: {{ vales|length }} Vales
-        </span>
+        
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadExcelModal">
+                <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
+            </button>
+            <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm d-flex align-items-center">
+                Total: {{ vales|length }} Vales
+            </span>
+        </div>
+    </div>
+
+    <div class="modal fade" id="uploadExcelModal" tabindex="-1" aria-labelledby="uploadExcelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="uploadExcelModalLabel">Importar Tickets desde Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{% url 'importar_vales_diarios' %}" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="modal-body py-4">
+                        <div class="alert alert-info py-2 small">
+                            <i class="bi bi-info-circle me-1"></i> El archivo debe contener las columnas necesarias para los registros diarios.
+                        </div>
+                        <div class="input-group">
+                            <input type="file" name="archivo_excel" class="form-control" id="inputGroupFile02" accept=".xlsx, .xls" required>
+                            <label class="input-group-text bg-light" for="inputGroupFile02"><i class="bi bi-cloud-upload"></i></label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4">Cargar Información</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0 mb-4 bg-light">
@@ -34,7 +67,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
                 <table class="table table-hover align-middle mb-0" id="tablaDiaria">
                     <thead style="background-color: #f8f9fa;">
                         <tr>
@@ -52,7 +85,7 @@
                                 <a href="{% url 'ver_cliente' vale.cliente.pk %}" class="text-decoration-none">
                                     <div class="fw-bold text-dark cell-nombre">{{ vale.cliente.nombre }} {{ vale.cliente.apellido }}</div>
                                 </a>
-                                <small class="text-muted">{{ vale.usuario }}</small>
+                                <small class="text-muted cell-padre">{{ vale.usuario }}</small>
                             </td>
                             
                             <td class="text-center cell-fecha">
@@ -119,12 +152,14 @@
 
         rows.forEach(row => {
             const nombre = row.querySelector('.cell-nombre').textContent.toLowerCase();
+            const padre = row.querySelector('.cell-padre').textContent.toLowerCase();
             const fecha = row.querySelector('.iso-fecha').textContent;
 
             const matchesNombre = nombre.includes(nombreQuery);
+            const matchesPadre = padre.includes(nombreQuery);
             const matchesFecha = fechaQuery === "" || fecha === fechaQuery;
 
-            if (matchesNombre && matchesFecha) {
+            if ((matchesNombre || matchesPadre) && matchesFecha) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';
@@ -138,16 +173,20 @@
 
 <style>
     .table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: #f8f9fa;
         font-size: 0.8rem;
         text-transform: uppercase;
         color: #6c757d;
         border-bottom: 2px solid #dee2e6;
+        box-shadow: inset 0 -1px 0 #dee2e6;
     }
     .badge {
         font-weight: 500;
         padding: 0.5em 0.8em;
     }
-    /* Estilo para que el nombre parezca clickeable sutilmente */
     .cell-nombre:hover {
         color: #0d6efd !important;
     }

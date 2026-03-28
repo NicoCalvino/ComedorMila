@@ -1,0 +1,166 @@
+{% extends 'main/index.html' %}
+
+{% block Bienvenida %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="h4 text-muted mb-0"><i class="bi bi-calendar-check me-2"></i>Gestión de Menú</h2>
+            {% if not form.instance.pk %}
+                <a href="{% url 'generacion_menu' %}" class="btn btn-generate text-white shadow-sm border-0">
+                    <i class="bi bi-magic me-2"></i>Generación Automática
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            
+            <div class="card card-custom shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="icon-box" style="font-size: 2.5rem; color: #fd7e14;">
+                            <i class="bi bi-calendar-plus"></i>
+                        </div>
+                        <h2 class="fw-bold">Crear Menú</h2>
+                        <p class="text-muted small text-uppercase" style="letter-spacing: 1px;">Asigna los platos para la fecha</p>
+                    </div>
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger shadow-sm" role="alert">
+                            {% for error in form.non_field_errors %}
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.fecha.id_for_label }}" class="form-label fw-bold small text-uppercase">
+                                    <i class="bi bi-calendar-event me-2"></i>Fecha del Menú
+                                </label>
+                                {{ form.fecha }}
+                                {% if form.fecha.errors %}<div class="text-danger small">{{ form.fecha.errors }}</div>{% endif %}
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.plato_principal.id_for_label }}" class="form-label fw-bold small text-uppercase">
+                                    <i class="bi bi-egg-fried me-2"></i>Plato Principal
+                                </label>
+                                {{ form.plato_principal }}
+                                {% if form.plato_principal.errors %}<div class="text-danger small">{{ form.plato_principal.errors }}</div>{% endif %}
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.plato_alternativo.id_for_label }}" class="form-label fw-bold small text-uppercase">
+                                    <i class="bi bi-plus-circle me-2"></i>Plato Alternativo (Opcional)
+                                </label>
+                                {{ form.plato_alternativo }}
+                                {% if form.plato_alternativo.errors %}<div class="text-danger small">{{ form.plato_alternativo.errors }}</div>{% endif %}
+                            </div>
+
+                            <div class="col-md-12 mb-4">
+                                <label for="{{ form.postre.id_for_label }}" class="form-label fw-bold small text-uppercase">
+                                    <i class="bi bi-ice-cream me-2"></i>Postre
+                                </label>
+                                {{ form.postre }}
+                                {% if form.postre.errors %}<div class="text-danger small">{{ form.postre.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-2">
+                            {% if form.instance.pk %}
+                                <button type="submit" class="btn btn-generate btn-lg text-white shadow-sm border-0">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Actualizar Menú
+                                </button>
+                            {% else %}
+                                <button type="submit" name="_save" class="btn btn-generate btn-lg text-white shadow-sm border-0">
+                                    <i class="bi bi-check-circle me-2"></i>Guardar Menú
+                                </button>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <button type="submit" name="_addanother" class="btn btn-outline-orange w-100 fw-bold">
+                                            <i class="bi bi-plus-lg me-2"></i>Guardar y Otro
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <a href="{% url 'home_menu' %}" class="btn btn-outline-secondary w-100">
+                                            Cancelar
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'home_menu' %}" class="btn btn-link text-muted text-decoration-none small">
+                    <i class="bi bi-arrow-left me-2"></i>Volver al listado
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-custom {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+    }
+    .card-custom:hover {
+        transform: translateY(0px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important;
+    }
+
+    .icon-box {
+        background: #fff5eb;
+        width: 70px;
+        height: 70px;
+        line-height: 70px;
+        border-radius: 50%;
+        margin: 0 auto 15px;
+    }
+
+    /* Estilo Naranja */
+    .btn-generate {
+        background-color: #fd7e14;
+        transition: all 0.3s ease;
+    }
+    .btn-generate:hover {
+        background-color: #e36a02;
+        color: white;
+        transform: scale(1.02);
+    }
+
+    .btn-outline-orange {
+        color: #fd7e14;
+        border-color: #fd7e14;
+        transition: all 0.3s ease;
+    }
+    .btn-outline-orange:hover {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    /* Inputs con foco naranja */
+    .form-control:focus, select:focus {
+        border-color: #fd7e14;
+        box-shadow: 0 0 0 0.25rem rgba(253, 126, 20, 0.25);
+    }
+
+    .form-label {
+        color: #6c757d;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}

@@ -16,6 +16,10 @@ from kiosco.models import Tarjeta
 class SuperUserRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_superuser
+    
+class StaffUserRequireMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.is_staff
 
 # Vistas de Transaccion
 ## Lista de Transacciones
@@ -33,6 +37,10 @@ class TransaccionListView(SuperUserRequiredMixin, ListView):
             queryset = queryset.filter(concepto="COMPRA")
 
         return queryset
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 ## Detalle de Transacción
 class TransaccionDetailView(SuperUserRequiredMixin, DetailView):
@@ -42,8 +50,12 @@ class TransaccionDetailView(SuperUserRequiredMixin, DetailView):
     slug_field ="id"
     slug_url_kwarg = "id"
 
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+
 ## Creación de Transacción de Compra    
-class TransaccionCompraCreateView(SuperUserRequiredMixin, CreateView):
+class TransaccionCompraCreateView(StaffUserRequireMixin, SuperUserRequiredMixin, CreateView):
     model = Transaccion
     template_name = "transacciones/cargar_transaccion.html"
     form_class = TransaccionCompraForm
@@ -77,6 +89,10 @@ class TransaccionCompraCreateView(SuperUserRequiredMixin, CreateView):
             extra_tags='mensaje_local' )
 
         return super().form_valid(form)
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 ## Creación de Transacción de Carga    
 class TransaccionCargaCreateView(SuperUserRequiredMixin, CreateView):
@@ -122,6 +138,10 @@ class TransaccionCargaCreateView(SuperUserRequiredMixin, CreateView):
 
         return super().form_valid(form)
     
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+
 ## Edición de Transacción
 class TransaccionUpdateView(SuperUserRequiredMixin, UpdateView):
     model = Transaccion
@@ -146,6 +166,10 @@ class TransaccionUpdateView(SuperUserRequiredMixin, UpdateView):
         self.object.save()
 
         return super().form_valid(form)
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 ## Eliminar Transacción
 class TransaccionDeleteView(SuperUserRequiredMixin, DeleteView):
@@ -168,7 +192,11 @@ class TransaccionDeleteView(SuperUserRequiredMixin, DeleteView):
 
             return super().form_valid(form)
         
-class BuscarClienteView(View):
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+        
+class BuscarClienteView(StaffUserRequireMixin, SuperUserRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         numero_tarjeta = request.GET.get('numero_tarjeta', None)
         data = {
@@ -181,9 +209,14 @@ class BuscarClienteView(View):
             tarjeta = Tarjeta.objects.filter(codigo=numero_tarjeta).first()
             if tarjeta and tarjeta.cliente:
                 data['encontrado'] = True
-                data['nombre'] = f"{tarjeta.cliente.nombre} {tarjeta.cliente.apellido}"
+                data['nombre'] = f"{tarjeta.cliente.nombre} {tarjeta.cliente.apellido} | Saldo: $ {tarjeta.saldo:,.0f}".replace(",", ".")
         
         return JsonResponse(data)
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+    
 
 # Vistas de Solicitud de Carga de Saldo
 ## Lista de Solicitudes        
@@ -443,3 +476,7 @@ class GestionarSolicitudView(SuperUserRequiredMixin, View):
             messages.error(request, f"Ocurrió un error al procesar: {str(e)}")
 
         return redirect('lista_solicitudes')
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home') # Cambia 'index' por el nombre de tu URL de destino

@@ -30,6 +30,7 @@ class Cliente(models.Model):
     nombre = models.CharField(max_length=50, null=False)
     apellido = models.CharField(max_length=50, null=False)
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='cursos', null=False)
+    limite = models.DecimalField(max_digits=10, decimal_places=2, default=2000)
 
     @property
     def saldo_total(self):

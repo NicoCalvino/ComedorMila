@@ -1,0 +1,154 @@
+{% extends 'main/index.html' %}
+
+{% block Bienvenida %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    
+    <div class="mb-3">
+        <a href="{% url 'home_menu' %}" class="btn btn-link text-decoration-none p-0 text-secondary fw-bold small">
+            <i class="bi bi-arrow-left me-1"></i> Volver a Menu
+        </a>
+    </div>
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-0 text-dark">Menú de Platos</h2>
+            <p class="text-muted mb-0">Gestiona y filtra el catálogo de comidas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="#" class="btn btn-success shadow-sm fw-bold d-flex align-items-center">
+                <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
+            </a>
+            <a href="{% url 'crear_plato' %}" class="btn btn-primary shadow-sm fw-bold d-flex align-items-center">
+                <i class="bi bi-plus-lg me-2"></i>Agregar Plato
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body p-4">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-secondary text-uppercase">Nombre</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="nombre" class="form-control border-start-0" placeholder="Buscar..." value="{{ request.GET.nombre }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-secondary text-uppercase">Día Fijo</label>
+                    <select name="dia_fijo" class="form-select">
+                        <option value="">Cualquier día</option>
+                        <option value="LUNES" {% if request.GET.dia_fijo == "LUNES" %}selected{% endif %}>Lunes</option>
+                        <option value="MARTES" {% if request.GET.dia_fijo == "MARTES" %}selected{% endif %}>Martes</option>
+                        <option value="MIERCOLES" {% if request.GET.dia_fijo == "MIERCOLES" %}selected{% endif %}>Miércoles</option>
+                        <option value="JUEVES" {% if request.GET.dia_fijo == "JUEVES" %}selected{% endif %}>Jueves</option>
+                        <option value="VIERNES" {% if request.GET.dia_fijo == "VIERNES" %}selected{% endif %}>Viernes</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-secondary text-uppercase">Categoría</label>
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="PLATO PRINCIPAL" {% if request.GET.categoria == "PLATO PRINCIPAL" %}selected{% endif %}>Plato Principal</option>
+                        <option value="PLATO ALTERNATIVO" {% if request.GET.categoria == "PLATO ALTERNATIVO" %}selected{% endif %}>Plato Alternativo</option>
+                        <option value="POSTRE" {% if request.GET.categoria == "POSTRE" %}selected{% endif %}>Postre</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-secondary text-uppercase">Ingrediente</label>
+                    <select name="ingrediente" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="POLLO" {% if request.GET.ingrediente == "POLLO" %}selected{% endif %}>Pollo</option>
+                        <option value="CERDO" {% if request.GET.ingrediente == "CERDO" %}selected{% endif %}>Cerdo</option>
+                        <option value="CARNE PICADA" {% if request.GET.ingrediente == "CARNE PICADA" %}selected{% endif %}>Carne Picada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100 fw-bold">
+                        <i class="bi bi-filter me-1"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4 py-3">Nombre</th>
+                        <th class="py-3">Categoría</th>
+                        <th class="py-3">Día Fijo</th>
+                        <th class="py-3">Ingrediente Principal</th>
+                        <th class="text-center py-3">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plato in platos %}
+                    <tr>
+                        <td class="ps-4">
+                            <span class="fw-bold d-block text-dark">{{ plato.nombre }}</span>
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill bg-blue-light text-primary px-3">
+                                {{ plato.get_categoria_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-bold text-secondary">
+                                {{ plato.get_dia_fijo_display|default:"-" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted"><i class="bi bi-info-circle me-1"></i>{{ plato.get_ingrediente_principal_display }}</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group shadow-sm" style="border-radius: 8px; overflow: hidden;">
+                                <a href="{% url 'editar_plato' plato.id %}" class="btn btn-sm btn-white text-primary border" title="Editar">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <a href="{% url 'eliminar_plato' plato.id %}" class="btn btn-sm btn-white text-danger border" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="bi bi-clipboard-x display-4"></i>
+                                <p class="mt-2">No se encontraron platos registrados.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-blue-light { background-color: rgba(13, 110, 253, 0.08); }
+    .btn-white { background-color: #fff; }
+    .btn-white:hover { background-color: #f8f9fa; }
+    .table thead th {
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #6c757d;
+        border-bottom: 1px solid #edf2f9;
+    }
+    .card { border-radius: 12px; }
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.01);
+        transition: background-color 0.2s ease;
+    }
+    .btn-link:hover { color: #0d6efd !important; }
+</style>
+{% endblock %}

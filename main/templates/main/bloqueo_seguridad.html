@@ -1,0 +1,81 @@
+{% extends "main/index.html" %}
+
+{% block titulo %}<title>Acceso Bloqueado - Comedor Mila</title>{% endblock %}
+
+{% block Bienvenida %}
+{# Se mantiene vacío para coherencia con el login #}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card card-custom p-4 shadow-sm border-0">
+                <div class="text-center mb-4">
+                    <div class="icon-box text-danger" style="font-size: 5rem;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h2 class="fw-bold text-dark">Acceso Restringido</h2>
+                    <p class="text-muted">Se han detectado demasiados intentos fallidos.</p>
+                </div>
+
+                <div class="alert alert-warning border-0 shadow-sm mb-4">
+                    <div class="d-flex">
+                        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                        <div>
+                            <p class="mb-0 small">Por razones de seguridad, tu acceso ha sido <strong>bloqueado temporalmente</strong>.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mb-4">
+                    <p class="small text-secondary">
+                        Si eres parte del staff y olvidaste tus credenciales, por favor contacta al administrador del sistema o espera <strong>una hora</strong> para intentar nuevamente.
+                    </p>
+                    
+                    <div class="bg-light p-3 rounded-3 mt-3">
+                        <p class="mb-1 fw-bold small text-uppercase text-muted">Soporte Técnico</p>
+                        <p class="mb-0 text-dark">solegav@hotmail.com</p>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a href="/" class="btn btn-warning fw-bold py-2 shadow-sm">
+                        <i class="bi bi-house-door me-2"></i> Volver al Inicio
+                    </a>
+                </div>
+
+                <div class="text-center mt-4 border-top pt-3">
+                    <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                        Registro de seguridad: <span class="font-monospace">{{ request.META.REMOTE_ADDR }}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Mantenemos tu paleta pero ajustamos detalles para la alerta */
+    .card-custom {
+        border-radius: 15px;
+        background: #ffffff;
+    }
+    
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border-left: 5px solid #ffc107;
+    }
+
+    .icon-box i {
+        filter: drop-shadow(0 4px 6px rgba(220, 53, 69, 0.2));
+    }
+
+    /* Evitamos efectos de hover innecesarios en una página de error */
+    .card-custom:hover {
+        transform: none !important;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important;
+    }
+</style>
+{% endblock %}

@@ -93,7 +93,8 @@ class ValeDiarioForm(forms.ModelForm):
             # Validamos: ¿Este cliente específico ya tiene un vale esta fecha?
             existe = ValeDiario.objects.filter(
                 cliente_id=self.cliente_id, 
-                fecha=fecha_ingresada
+                fecha=fecha_ingresada,
+                cancelado=False
             ).exists()
             
             if existe:

@@ -9,7 +9,7 @@ from transacciones.models import *
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 ## Historial completo de transacciones de Cliente
-@user_passes_test(lambda u: u.is_superuser)
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
 def home_kiosco(request):    
     return render(request, "kiosco/home.html")
 
@@ -34,7 +34,7 @@ def historial_cliente(request, pk):
 
 # Vistas de Tarjetas
 ## Lista de Tarjetas
-@user_passes_test(lambda u: u.is_superuser)
+@user_passes_test(lambda u: u.is_superuser )
 def lista_tarjetas(request):
     busqueda = request.GET.get("codigo") 
     tarjetas_query = Tarjeta.objects.all()

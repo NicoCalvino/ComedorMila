@@ -13,7 +13,7 @@
 <div class="container">
     
     <div class="row g-4 justify-content-center">
-
+        {% if user.is_superuser %}
         <div class="col-md-6 col-lg-3">
             <div class="card card-custom p-4 text-center h-100 d-flex flex-column position-relative">
                 <div class="icon-box text-info"> 
@@ -33,7 +33,7 @@
                 <a href="{% url 'comedor_home' %}" class="btn btn-outline-danger w-100 mt-2 mt-auto stretched-link">Ver Comedor</a>
             </div>
         </div>
-
+        {% endif %}
         <div class="col-md-6 col-lg-3">
             <div class="card card-custom p-4 text-center h-100 d-flex flex-column position-relative">
                 <div class="icon-box text-usuarios">

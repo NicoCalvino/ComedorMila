@@ -105,8 +105,6 @@ def importar_usuarios_excel(request):
 
     return redirect('lista_usuarios')
 
-
-
 # Ver Perfil
 @login_required
 def perfil_detail(request, pk=None):

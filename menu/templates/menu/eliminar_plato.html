@@ -1,0 +1,73 @@
+{% extends 'main/index.html' %}
+
+{% block Bienvenida %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            
+            <div class="card shadow border-0" style="border-radius: 15px;">
+                <div class="card-body p-4 p-md-5 text-center">
+                    <div class="mb-4">
+                        <div class="display-1 text-danger">
+                            <i class="bi bi-exclamation-octagon-fill"></i>
+                        </div>
+                    </div>
+
+                    <h2 class="fw-bold text-dark mb-3">¿Confirmar eliminación?</h2>
+                    
+                    <p class="text-muted mb-4">
+                        Estás a punto de eliminar el plato: <br>
+                        <span class="fw-bold text-dark fs-5">"{{ plato.nombre }}"</span>
+                    </p>
+
+                    <div class="alert alert-warning border-0 small shadow-sm mb-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Esta acción no se puede deshacer y el plato desaparecerá del menú.
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg fw-bold shadow-sm">
+                                <i class="bi bi-trash me-2"></i>Eliminar permanentemente
+                            </button>
+                            
+                            <a href="{% url 'lista_platos' %}" class="btn btn-outline-secondary btn-lg border-0 mt-2">
+                                No, mantener plato
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'lista_platos' %}" class="btn btn-link text-muted text-decoration-none small">
+                    <i class="bi bi-arrow-left me-1"></i>Volver al listado
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Efecto de sutil pulsación en el icono para llamar la atención */
+    .bi-exclamation-octagon-fill {
+        display: inline-block;
+        animation: pulse-red 2s infinite;
+    }
+
+    @keyframes pulse-red {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .card {
+        background-color: #ffffff;
+    }
+</style>
+{% endblock %}
