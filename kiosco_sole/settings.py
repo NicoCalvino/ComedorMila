@@ -80,8 +80,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
-    #'django_otp.middleware.OTPMiddleware',
-    #'main.middleware.StaffOTPRequiredMiddleware'
+    'django_otp.middleware.OTPMiddleware',
+    'main.middleware.StaffOTPRequiredMiddleware'
 ]
 
 ROOT_URLCONF = 'kiosco_sole.urls'

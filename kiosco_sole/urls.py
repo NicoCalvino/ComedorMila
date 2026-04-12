@@ -22,7 +22,7 @@ from django.urls import path, include
 from main.views import axes_lockout_view
 
 # Configuramos el admin para que requiera OTP
-#admin.site.__class__ = OTPAdminSite
+admin.site.__class__ = OTPAdminSite
 
 urlpatterns = [
     path('gestion-interna-sole/', admin.site.urls),
