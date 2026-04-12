@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-(0#unw-n0(@ar(0va)x1&kmcal1%3ru)o6y0!)8z#5jlvg(aqm
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = False - Ajuste de Lanzamiento
-DEBUG = True
+DEBUG = False
 
 # ALLOWED_HOSTS = ['yourdomain.com', 'your-server-ip'] - Ajuste de Lanzamiento
 ALLOWED_HOSTS = [
@@ -151,6 +151,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Defaul primary key field type
@@ -174,3 +175,5 @@ AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Bloquea la dupla Usuario+IP
 AXES_RESET_ON_SUCCESS = True      # Si se loguea bien, se resetea el contador
 
 AXES_LOCKOUT_URL = '/acceso-denegado/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
