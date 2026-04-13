@@ -28,15 +28,15 @@ DEBUG = False
 
 # ALLOWED_HOSTS = ['yourdomain.com', 'your-server-ip'] - Ajuste de Lanzamiento
 ALLOWED_HOSTS = [
-    '*', 
-    'thirstless-carolynn-unpitied.ngrok-free.dev', 
+    'www.comedormila.com.ar', 
     '127.0.0.1', 
     'localhost']
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://thirstless-carolynn-unpitied.ngrok-free.dev',
+    'https://nicocalvino.pythonanywhere.com',
+    'https://www.comedormila.com.ar',
+    'https://comedormila.com.ar' # Por si entran sin el www
 ]
-
 # Application definition
 
 INSTALLED_APPS = [
