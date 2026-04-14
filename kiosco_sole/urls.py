@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 from main.views import axes_lockout_view
+from django.views.generic import TemplateView
 
 # Configuramos el admin para que requiera OTP
 admin.site.__class__ = OTPAdminSite
@@ -35,7 +36,11 @@ urlpatterns = [
     path("comedor/", include("comedor.urls")),
     path("escuela/", include("escuela.urls")),
     path("menu/", include("menu.urls")),
-    path('acceso-denegado/', axes_lockout_view, name='axes_lockout')
+    path('acceso-denegado/', axes_lockout_view, name='axes_lockout'),
+    path('sw.js', TemplateView.as_view(
+            template_name="sw.js", 
+            content_type='application/javascript'
+        ), name='sw.js'),
 ]
 
 if settings.DEBUG:

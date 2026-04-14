@@ -133,12 +133,22 @@
                             {% if solicitud.comprobante %}
                                 <div class="border rounded overflow-hidden bg-white shadow-sm">
                                     <div class="text-center p-2">
+                                        {% if solicitud.comprobante.name|lower|slice:"-3:" == "pdf" %}
+                                            <div class="pdf-container">
+                                                <embed src="{{ solicitud.comprobante.url }}" 
+                                                    type="application/pdf" 
+                                                    width="100%" 
+                                                    height="500px" />
+                                                <p><a href="{{ solicitud.comprobante.url }}" target="_blank">Abrir en pantalla completa</a></p>
+                                            </div>
+                                        {% else %}
                                         <img src="{{ solicitud.comprobante.url }}" 
                                             alt="Comprobante" 
                                             class="img-fluid rounded"
                                             style="max-height: 600px; width: auto;"
                                             onclick="window.open(this.src, '_blank')"
                                             style="cursor: zoom-in;">
+                                        {% endif %}
                                     </div>
                                 </div>
                             {% else %}

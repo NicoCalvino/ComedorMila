@@ -36,7 +36,7 @@ class SolicitudCarga(models.Model):
                             unique=True,
                             default = generate_code
                             )
-    comprobante = models.ImageField(
+    comprobante = models.FileField(
         upload_to=picture_upload_to,
         verbose_name="Comprobante",
         default= "default/noticket.png",

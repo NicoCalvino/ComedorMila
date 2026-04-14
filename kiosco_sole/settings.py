@@ -84,6 +84,8 @@ MIDDLEWARE = [
     'main.middleware.StaffOTPRequiredMiddleware'
 ]
 
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 ROOT_URLCONF = 'kiosco_sole.urls'
 
 TEMPLATES = [

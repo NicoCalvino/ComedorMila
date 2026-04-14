@@ -14,7 +14,13 @@
     <!-- Google Fonts: Nunito (Fuente amigable y redondeada) -->
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#004282">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
+
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32x32.png' %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16x16.png' %}">
 
@@ -330,5 +336,15 @@
 
     <!-- Bootstrap JS (Versión estable) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+            // Apuntamos directamente a /sw.js en la raíz
+            navigator.serviceWorker.register("/sw.js") 
+                .then(reg => console.log('SW registrado en la raíz (Scope total)', reg))
+                .catch(err => console.error('Error:', err));
+            });
+        }
+    </script>
 </body>
 </html>

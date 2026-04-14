@@ -1,6 +1,7 @@
 from django import forms
 from transacciones.models import *
 from decimal import Decimal
+from django.core.validators import FileExtensionValidator
 
 class TransaccionCompraForm(forms.ModelForm):
     numero_tarjeta = forms.CharField(
@@ -158,3 +159,14 @@ class SolicitudCargaForm(forms.ModelForm):
         labels = {
             'comprobante': 'Subir comprobante de pago (Imagen/PDF)'
         }
+        widgets = {
+            # Esto ayuda a que el explorador de archivos del usuario filtre por defecto
+            'comprobante': forms.FileInput(attrs={'accept': 'image/*,application/pdf'}),
+        }
+
+    # Agregamos una validación extra en el servidor para mayor seguridad
+    comprobante = forms.FileField(
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])],
+        label='Subir comprobante de pago (Imagen/PDF)',
+        required=True # O True, según prefieras
+    )
