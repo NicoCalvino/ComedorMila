@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-10">
@@ -89,6 +90,25 @@
         
         const buscadorNombre = document.getElementById('buscador-cliente');
         const dataListClientes = document.getElementById('lista-clientes-nombres');
+
+        const form = document.getElementById('form-transaccion');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault(); // Evita que se envíe el formulario inmediatamente
+
+            Swal.fire({
+                title: '¡Operación realizada con éxito!',
+                text: 'Se ha registrado la transacción correctamente.',
+                icon: 'success',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#28a745' // Puedes cambiar el color según tu botón
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit(); // Envía el formulario una vez el usuario hace click en OK
+                }
+            });
+        });
+
 
         // 1. Lógica para buscar por tarjeta (la que ya tenías funcionando)
         if (inputTarjeta) {
