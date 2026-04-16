@@ -1,5 +1,5 @@
 {% extends 'main/index.html' %} 
-
+{% load humanize %} 
 {% block titulo %}
 <title>Comedor Colegio Mallinckrodt - Transacciones</title>
 {% endblock %} 
@@ -48,7 +48,7 @@
                         <td>{{ transaccion.tarjeta }}</td>
                         <td>{{ transaccion.tarjeta.cliente.nombre }} {{ transaccion.tarjeta.cliente.apellido }}</td>
                         <td>{{ transaccion.concepto }}</td>
-                        <td>${{ transaccion.monto|floatformat:2 }}</td>
+                        <td>${{ transaccion.monto|floatformat:"0"|intcomma }}</td>
                         <td>
                             <a href="{% url 'ver_transaccion' transaccion.id %}"
                                 class="btn btn-outline-info btn-sm">

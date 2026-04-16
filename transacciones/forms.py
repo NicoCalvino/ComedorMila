@@ -10,7 +10,6 @@ class TransaccionCompraForm(forms.ModelForm):
         required=True, # Obligatorio
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Ej: 123',
             'autofocus': 'autofocus',
             'pattern': '[0-9-]*',
             'autocomplete': 'off',
@@ -22,7 +21,7 @@ class TransaccionCompraForm(forms.ModelForm):
         model = Transaccion
         fields = ["monto"]
         widgets = {
-            'monto': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 1500.50', 'min': '0'}),
+            'monto': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
         }
     
     def clean(self):
@@ -104,7 +103,6 @@ class TransaccionCargaForm(forms.ModelForm):
         required=True, # Obligatorio
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Ej: 123',
             'pattern': '[0-9-]*',
             'autocomplete': 'off',
             'autofocus': 'autofocus',
@@ -116,7 +114,7 @@ class TransaccionCargaForm(forms.ModelForm):
         model = Transaccion
         fields = ["monto"]
         widgets = {
-            'monto': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 1500.50', 'min': '0'}),
+            'monto': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
         }
     
     def clean(self):
