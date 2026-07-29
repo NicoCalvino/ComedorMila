@@ -5,8 +5,9 @@ from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from decimal import Decimal
 
 from transacciones.models import Transaccion, SolicitudCarga, DetalleCarga
 from transacciones.forms import *
@@ -74,28 +75,47 @@ class TransaccionCompraCreateView(StaffUserRequireMixin, SuperUserRequiredMixin,
         self.object = form.save(commit=False)
         self.object.concepto = "COMPRA"
 
-        if 'tarjeta_objeto' in form.cleaned_data:
-            tarjeta = form.cleaned_data['tarjeta_objeto']
-            
-            nuevo_saldo = form.cleaned_data['nuevo_saldo_tarjeta']
+        tarjeta = form.cleaned_data.get('tarjeta_objeto')
+        monto = form.cleaned_data.get('monto')
+        if tarjeta is None or monto is None:
+            return self.form_invalid(form)
+
+        # Recalculamos el saldo con la fila BLOQUEADA para evitar condiciones de
+        # carrera (dos compras simultáneas pisándose el saldo). La validación del
+        # form es la primera capa de UX; esta es la autoritativa.
+        with transaction.atomic():
+            tarjeta = Tarjeta.objects.select_for_update().get(pk=tarjeta.pk)
+
+            if not tarjeta.habilitada:
+                form.add_error('numero_tarjeta', "Esta tarjeta se encuentra deshabilitada.")
+                return self.form_invalid(form)
+
+            if tarjeta.cliente is None:
+                form.add_error('numero_tarjeta', "La tarjeta no tiene un cliente asociado.")
+                return self.form_invalid(form)
+
+            limite = Decimal(tarjeta.cliente.limite)
+            nuevo_saldo = tarjeta.saldo - Decimal(str(monto))
+            if nuevo_saldo < -limite:
+                form.add_error('numero_tarjeta', "Saldo insuficiente")
+                return self.form_invalid(form)
 
             tarjeta.saldo = nuevo_saldo
             tarjeta.save()
 
             self.object.tarjeta = tarjeta
-        
-        self.object.save()
+            self.object.save()
 
-        messages.success(self.request, 'Compra registrada exitosamente', 
+        messages.success(self.request, 'Compra registrada exitosamente',
             extra_tags='mensaje_local' )
 
-        return super().form_valid(form)
-    
+        return HttpResponseRedirect(self.get_success_url())
+
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
-## Creación de Transacción de Carga    
+## Creación de Transacción de Carga
 class TransaccionCargaCreateView(SuperUserRequiredMixin, CreateView):
     model = Transaccion
     template_name = "transacciones/cargar_transaccion.html"
@@ -126,19 +146,22 @@ class TransaccionCargaCreateView(SuperUserRequiredMixin, CreateView):
         self.object = form.save(commit=False)
         self.object.concepto = "CARGA SALDO"
 
-        if 'tarjeta_objeto' in form.cleaned_data:
-            tarjeta = form.cleaned_data['tarjeta_objeto']
-            nuevo_saldo = form.cleaned_data['nuevo_saldo_tarjeta']
+        tarjeta = form.cleaned_data.get('tarjeta_objeto')
+        monto = form.cleaned_data.get('monto')
+        if tarjeta is None or monto is None:
+            return self.form_invalid(form)
 
-            tarjeta.saldo = nuevo_saldo
+        # Fila bloqueada para no perder cargas concurrentes.
+        with transaction.atomic():
+            tarjeta = Tarjeta.objects.select_for_update().get(pk=tarjeta.pk)
+            tarjeta.saldo = tarjeta.saldo + Decimal(str(monto))
             tarjeta.save()
 
             self.object.tarjeta = tarjeta
-        
-        self.object.save()
+            self.object.save()
 
-        return super().form_valid(form)
-    
+        return HttpResponseRedirect(self.get_success_url())
+
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
@@ -154,20 +177,36 @@ class TransaccionUpdateView(SuperUserRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
+        monto_nuevo = form.cleaned_data.get('monto')
+        if monto_nuevo is None:
+            return self.form_invalid(form)
 
-        if 'tarjeta_objeto' in form.cleaned_data:
-            tarjeta = form.cleaned_data['tarjeta_objeto']
-            nuevo_saldo = form.cleaned_data['nuevo_saldo_tarjeta']
+        with transaction.atomic():
+            # Valores originales leídos de la DB (self.object ya tiene el monto nuevo).
+            original = Transaccion.objects.get(pk=self.object.pk)
+            monto_original = original.monto
+            concepto_original = original.concepto
+
+            # Fila de la tarjeta bloqueada para recalcular sobre saldo fresco.
+            tarjeta = Tarjeta.objects.select_for_update().get(pk=original.tarjeta_id)
+
+            if concepto_original == "COMPRA":
+                nuevo_saldo = tarjeta.saldo + monto_original - Decimal(str(monto_nuevo))
+                limite = Decimal(tarjeta.cliente.limite) if tarjeta.cliente else Decimal('2000')
+                if nuevo_saldo < -limite:
+                    form.add_error('monto', "Saldo insuficiente")
+                    return self.form_invalid(form)
+            else:
+                nuevo_saldo = tarjeta.saldo - monto_original + Decimal(str(monto_nuevo))
 
             tarjeta.saldo = nuevo_saldo
             tarjeta.save()
 
             self.object.tarjeta = tarjeta
-        
-        self.object.save()
+            self.object.save()
 
-        return super().form_valid(form)
-    
+        return HttpResponseRedirect(self.get_success_url())
+
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
@@ -180,19 +219,19 @@ class TransaccionDeleteView(SuperUserRequiredMixin, DeleteView):
 
     def form_valid(self, form):
         transaccion = self.get_object()
-        
-        tarjeta = transaccion.tarjeta
 
         with transaction.atomic():
+            # Tarjeta bloqueada: revertir el efecto de la transacción y eliminarla
+            # de forma atómica para no dejar el saldo inconsistente.
+            tarjeta = Tarjeta.objects.select_for_update().get(pk=transaccion.tarjeta_id)
             if transaccion.concepto == "CARGA SALDO":
-                tarjeta.saldo -= transaccion.monto
+                tarjeta.saldo = tarjeta.saldo - transaccion.monto
             else:
-                tarjeta.saldo += transaccion.monto
-            
+                tarjeta.saldo = tarjeta.saldo + transaccion.monto
             tarjeta.save()
 
             return super().form_valid(form)
-        
+
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
@@ -502,15 +541,16 @@ class GestionarSolicitudView(SuperUserRequiredMixin, View):
                     detalles = solicitud.detalles.all()
 
                     for detalle in detalles:
+                        # Tarjeta bloqueada para acreditar sin perder cargas concurrentes.
+                        tarjeta = Tarjeta.objects.select_for_update().get(pk=detalle.tarjeta_id)
                         Transaccion.objects.create(
-                            tarjeta=detalle.tarjeta,
+                            tarjeta=tarjeta,
                             concepto="CARGA SALDO",
                             monto=detalle.monto,
- 
                         )
-                        
-                        detalle.tarjeta.saldo += detalle.monto
-                        detalle.tarjeta.save()
+
+                        tarjeta.saldo = tarjeta.saldo + detalle.monto
+                        tarjeta.save()
                 
                 elif accion == 'rechazar':
                     
