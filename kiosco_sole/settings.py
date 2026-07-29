@@ -104,7 +104,6 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
-                'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -188,7 +187,7 @@ LOGOUT_REDIRECT_URL = "/"
 AXES_FAILURE_LIMIT = 5            # Bloquea al 5to intento fallido
 AXES_COOLOFF_TIME = 1             # El bloqueo dura 1 hora (en horas)
 AXES_USERNAME_FORM_FIELD = 'username'
-AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Bloquea la dupla Usuario+IP
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]  # Bloquea la dupla Usuario+IP (API nueva)
 AXES_RESET_ON_SUCCESS = True      # Si se loguea bien, se resetea el contador
 
 AXES_LOCKOUT_URL = '/acceso-denegado/'

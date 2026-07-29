@@ -1,39 +1,47 @@
+from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse, NoReverseMatch
 
+
+def _normalizar_prefijo(url):
+    """Asegura que el prefijo empiece con '/' para comparar contra request.path."""
+    if not url:
+        return None
+    return url if url.startswith("/") else "/" + url
+
+
 class StaffOTPRequiredMiddleware:
+    """
+    Obliga a los usuarios staff a verificar su OTP (2FA) antes de acceder al sitio.
+    Deja pasar sin verificar: rutas de OTP/login/logout y los archivos estáticos y media.
+    """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # 1. Si no está logueado o no es staff, no hacemos nada
-        if not request.user.is_authenticated or not request.user.is_staff:
+        user = request.user
+
+        # 1. Solo aplica a staff autenticado que todavía no verificó el OTP.
+        if not user.is_authenticated or not user.is_staff:
+            return self.get_response(request)
+        if user.is_verified():
             return self.get_response(request)
 
-        # 2. Si ya pasó el OTP, no hacemos nada
-        if request.user.is_verified():
+        # 2. Prefijos de ruta exentos (comparación por startswith, no por substring).
+        exentos = []
+        for nombre in ("verificar_otp", "login", "logout"):
+            try:
+                exentos.append(reverse(nombre))
+            except NoReverseMatch:
+                pass
+        for url in (settings.STATIC_URL, settings.MEDIA_URL):
+            prefijo = _normalizar_prefijo(url)
+            if prefijo:
+                exentos.append(prefijo)
+
+        if any(request.path.startswith(prefijo) for prefijo in exentos):
             return self.get_response(request)
 
-        # 3. Definir rutas exentas (Zonas donde NO pedimos OTP)
-        bypass_keywords = ['logout', 'verificar-otp', 'static', 'media']
-    
-        if any(keyword in request.path.lower() for keyword in bypass_keywords):
-            return self.get_response(request)
-
-        # 2. Si quieres ser más específico con las rutas de reverse:
-        try:
-            exempt_urls = [
-                reverse('verificar_otp'),
-                # Agrega aquí cualquier otra ruta con nombre
-            ]
-            if any(request.path == url for url in exempt_urls):
-                return self.get_response(request)
-        except NoReverseMatch:
-            pass
-
-        # 4. Verificación de exención
-        if any(request.path.startswith(url) for url in exempt_urls):
-            return self.get_response(request)
-
-        # 5. Si llegó acá, es Staff no verificado: Redirigir
-        return redirect('verificar_otp')
+        # 3. Staff no verificado en una ruta protegida: lo mandamos a verificar OTP.
+        return redirect("verificar_otp")

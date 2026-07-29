@@ -12,7 +12,7 @@ class SuperUserRequiredMixin(UserPassesTestMixin):
         return self.request.user.is_superuser
 
 # Lista de Productos
-class ProductoListView(ListView):
+class ProductoListView(LoginRequiredMixin, ListView):
     model = Producto
     template_name = "productos/productos.html"
     context_object_name = "productos"

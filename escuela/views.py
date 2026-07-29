@@ -322,7 +322,7 @@ class EliminarClienteView(LoginRequiredMixin, ClienteOwnerRequiredMixin, DeleteV
         messages.success(self.request, "Cliente eliminado correctamente.")
         return super().delete(request, *args, **kwargs)
 
-class CargarCursosView(ListView):
+class CargarCursosView(LoginRequiredMixin, ListView):
     model = Curso
     template_name = 'escuela/curso_dropdown_list_options.html'
     context_object_name = 'cursos'

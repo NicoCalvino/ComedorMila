@@ -25,10 +25,10 @@ def resultado_importacion(request):
     
     if not resumen:
         return redirect('lista_usuarios') # O a una página de inicio
-    
-    # Limpiamos la sesión después de leerla para que no aparezca de nuevo al refrescar
-    # del request.session['ultimo_resultado_importacion'] 
-    
+
+    # Limpiamos la sesión después de leerla para que no reaparezca al refrescar.
+    request.session.pop('ultimo_resultado_importacion', None)
+
     return render(request, 'main/resultado_importacion.html', {'resumen': resumen})
 
 def axes_lockout_view(request):

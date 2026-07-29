@@ -13,9 +13,9 @@ class Precio(models.Model):
     )
 
     colegio = models.ForeignKey(Colegio, on_delete=models.CASCADE, null=False)
-    alm_por_sem = models.IntegerField(max_length=1, null=False)
+    alm_por_sem = models.IntegerField(null=False)
     nivel = models.CharField(choices=OPCIONES, null=False)
-    nro_de_cliente = models.IntegerField(max_length=1, null=False)
+    nro_de_cliente = models.IntegerField(null=False)
     precio = models.DecimalField(max_digits=8, decimal_places=2)
 
     def __str__(self):

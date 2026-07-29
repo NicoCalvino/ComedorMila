@@ -7,7 +7,7 @@ from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from transacciones.models import Transaccion, SolicitudCarga, DetalleCarga
 from transacciones.forms import *
@@ -332,7 +332,7 @@ class SolicitudDeCargaCreateView(LoginRequiredMixin, CreateView):
             with transaction.atomic():
                 self.object = form.save(commit=False)
                 self.object.usuario = self.request.user
-                self.object.monto = 0
+                self.object.monto = Decimal('0')
                 self.object.save()
 
                 tarjetas = Tarjeta.objects.filter(
@@ -340,23 +340,28 @@ class SolicitudDeCargaCreateView(LoginRequiredMixin, CreateView):
                     habilitada = True
                 ).select_related('cliente')
 
-                monto_total_cargado = 0
+                monto_total_cargado = Decimal('0')
 
                 for tarjeta in tarjetas:
- 
                     input_name = f"monto_{tarjeta.id}"
-                    monto = self.request.POST.get(input_name)
-                    if monto and float(monto) > 0:
+                    monto_raw = self.request.POST.get(input_name)
+                    if not monto_raw:
+                        continue
+                    try:
+                        monto = Decimal(monto_raw)
+                    except InvalidOperation:
+                        continue
+                    if monto > 0:
                         DetalleCarga.objects.create(
                             solicitud=self.object,
                             tarjeta=tarjeta,
                             monto=monto
                         )
-                        monto_total_cargado += float(monto)
-                
+                        monto_total_cargado += monto
+
                 if monto_total_cargado == 0:
                     raise ValueError("Debe ingresar un monto para al menos un alumno.")
-                
+
                 self.object.monto = monto_total_cargado
                 self.object.save()
 
@@ -459,23 +464,28 @@ class SolicitudDeCargaUpdateView(LoginRequiredMixin, UserPassesTestMixin, Update
                     habilitada = True
                 ).select_related('cliente')
 
-                monto_total_cargado = 0
+                monto_total_cargado = Decimal('0')
 
                 for tarjeta in tarjetas:
-
                     input_name = f"monto_{tarjeta.id}"
-                    monto = self.request.POST.get(input_name)
-                    if monto and float(monto) > 0:
+                    monto_raw = self.request.POST.get(input_name)
+                    if not monto_raw:
+                        continue
+                    try:
+                        monto = Decimal(monto_raw)
+                    except InvalidOperation:
+                        continue
+                    if monto > 0:
                         DetalleCarga.objects.create(
                             solicitud=self.object,
                             tarjeta=tarjeta,
                             monto=monto
                         )
-                        monto_total_cargado += float(monto)
-                
+                        monto_total_cargado += monto
+
                 if monto_total_cargado == 0:
                     raise ValueError("Debe ingresar un monto para al menos un alumno.")
-                
+
                 self.object.monto = monto_total_cargado
                 self.object.save()
             return super().form_valid(form)
