@@ -11,7 +11,7 @@ def picture_upload_to(instance, filename):
 
 class Transaccion(models.Model):
     CONCEPTOS = (
-        ("CARGA","Carga"),
+        ("CARGA SALDO","Carga de saldo"),
         ("COMPRA","Compra"),
     )
     fecha = models.DateTimeField(auto_now_add=True)
