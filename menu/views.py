@@ -267,7 +267,7 @@ class ImportarMenuView(SuperUserRequiredMixin, View):
                     4: "VIERNES",
                 }
 
-                dia = traduccion_dias.get(self.fecha.weekday())
+                dia = traduccion_dias.get(fecha.weekday())
 
                 try:
                     plato_principal_obj = Plato.objects.get(nombre=plato_principal)

@@ -42,17 +42,23 @@ class TransaccionCompraForm(forms.ModelForm):
             tarjeta_obj = Tarjeta.objects.get(codigo=numero_tarjeta)
         except Tarjeta.DoesNotExist:
             self.add_error('numero_tarjeta', "El número de tarjeta ingresado no existe.")
-        
+            return cleaned_data
+
         if not tarjeta_obj.habilitada:
             self.add_error('numero_tarjeta', "Esta tarjeta se encuentra deshabilitada.")
+            return cleaned_data
+
+        if tarjeta_obj.cliente is None:
+            self.add_error('numero_tarjeta', "La tarjeta no tiene un cliente asociado.")
+            return cleaned_data
 
         monto_decimal = Decimal(str(monto))
 
         nuevo_saldo = tarjeta_obj.saldo - monto_decimal
         limite_descubierto = Decimal(tarjeta_obj.cliente.limite)
 
-        if nuevo_saldo < -Decimal(limite_descubierto):
-            self.add_error('numero_tarjeta', f"Saldo insuficiente")
+        if nuevo_saldo < -limite_descubierto:
+            self.add_error('numero_tarjeta', "Saldo insuficiente")
 
         cleaned_data['tarjeta_objeto'] = tarjeta_obj
         cleaned_data['nuevo_saldo_tarjeta'] = nuevo_saldo
@@ -80,7 +86,7 @@ class TransaccionUpdateForm(forms.ModelForm):
         numero_tarjeta = transaccion_original.tarjeta.codigo
 
         tarjeta_obj = Tarjeta.objects.get(codigo=numero_tarjeta)
-        
+
         monto_decimal = Decimal(str(monto_nuevo))
 
         if concepto_original == "COMPRA":
@@ -88,7 +94,13 @@ class TransaccionUpdateForm(forms.ModelForm):
         else:
             nuevo_saldo = tarjeta_obj.saldo - monto_original + monto_decimal
 
-        if nuevo_saldo < Decimal('-2000'):
+        # Usamos el límite de descubierto real del cliente (no un -2000 fijo).
+        if tarjeta_obj.cliente is not None:
+            limite_descubierto = Decimal(tarjeta_obj.cliente.limite)
+        else:
+            limite_descubierto = Decimal('2000')
+
+        if nuevo_saldo < -limite_descubierto:
             self.add_error('monto', "Saldo insuficiente")
 
         cleaned_data['tarjeta_objeto'] = tarjeta_obj

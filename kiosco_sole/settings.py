@@ -173,6 +173,13 @@ AUTH_USER_MODEL = "users.Perfil"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Carpeta local desde donde la importación por Excel de vales diarios lee los
+# comprobantes (imágenes). Configurable por entorno; por defecto media/import_comprobantes.
+COMPROBANTES_IMPORT_DIR = os.environ.get(
+    'COMPROBANTES_IMPORT_DIR',
+    str(BASE_DIR / 'media' / 'import_comprobantes')
+)
+
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"

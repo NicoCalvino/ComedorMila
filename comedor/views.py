@@ -14,6 +14,7 @@ from escuela.models import Cliente, Colegio
 from users.models import Perfil
 from datetime import date, datetime, timedelta
 import os
+from django.conf import settings
 from django.core.files import File
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
@@ -508,7 +509,10 @@ class ImportarValesDiariosView(SuperUserRequiredMixin, View):
                 comentarios = str(row.get('comentarios', '')).strip()
                 comprobante = str(row.get('comprobante', '')).strip()
 
-                ruta_completa = os.path.join(r"C:\Users\Nicolas\Pictures", comprobante)
+                # Carpeta de origen configurable (antes estaba hardcodeada a una
+                # ruta de Windows que no existe en el servidor). Si el archivo no
+                # está, más abajo simplemente no se adjunta el comprobante.
+                ruta_completa = os.path.join(settings.COMPROBANTES_IMPORT_DIR, comprobante) if comprobante else ""
 
                 try:
                     usuario_obj = Perfil.objects.get(email=mail_usuario)
