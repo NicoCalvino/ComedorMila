@@ -449,11 +449,31 @@ class SolicitudDeCargaUpdateView(LoginRequiredMixin, UserPassesTestMixin, Update
             return self.form_invalid(form)
 
 ## Eliminación de Solicitud
-class SolicitudDeCargaDeleteView(LoginRequiredMixin, DeleteView):
+class SolicitudDeCargaDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = SolicitudCarga
     template_name = "transacciones/confirmar_eliminar_carga_de_saldo.html"
     context_object_name= "solicitud"
     success_url = reverse_lazy("lista_solicitudes")
+
+    def test_func(self):
+        solicitud = self.get_object()
+        usuario_actual = self.request.user
+        if usuario_actual.is_superuser:
+            return True
+        return solicitud.usuario == usuario_actual
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        return redirect('lista_solicitudes')
+
+    def get_queryset(self):
+        # Un usuario común solo puede borrar sus propias solicitudes y únicamente
+        # mientras estén PENDIENTES (una aprobada/rechazada ya movió saldo).
+        queryset = super().get_queryset()
+        if not self.request.user.is_superuser:
+            queryset = queryset.filter(usuario=self.request.user, estado='PENDIENTE')
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

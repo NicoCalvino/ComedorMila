@@ -7,6 +7,7 @@ from kiosco.models import *
 from kiosco.forms import *
 from transacciones.models import *
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_POST
 
 ## Historial completo de transacciones de Cliente
 @user_passes_test(lambda u: u.is_superuser or u.is_staff)
@@ -159,21 +160,24 @@ def ver_tarjeta(request, pk):
 
 ## Habilitar o Deshabilitar Tarjeta desde para Superuser
 @user_passes_test(lambda u: u.is_superuser)
+@require_POST
 def cambiar_estado_tarjeta(request, pk):
     tarjeta = get_object_or_404(Tarjeta, pk=pk)
-    tarjeta.habilitada = not tarjeta.habilitada 
+    tarjeta.habilitada = not tarjeta.habilitada
     tarjeta.save()
 
     return redirect('ver_tarjeta', tarjeta.pk)
 
 ## Habilitar o Deshabilitar Tarjeta desde el usuario común
 @login_required
+@require_POST
 def cambiar_estado_tarjeta_alumno(request, pk):
     tarjeta = get_object_or_404(Tarjeta, pk=pk)
-    if tarjeta.cliente.usuario != request.user:
+    # Una tarjeta sin cliente asociado no puede gestionarse desde acá
+    if tarjeta.cliente is None or tarjeta.cliente.usuario != request.user:
         messages.error(request, 'No puedes modificar esa tarjeta')
         return redirect('home')
-    tarjeta.habilitada = not tarjeta.habilitada 
+    tarjeta.habilitada = not tarjeta.habilitada
     tarjeta.save()
 
     return redirect('ver_cliente', pk=tarjeta.cliente.pk)

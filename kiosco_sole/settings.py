@@ -20,11 +20,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(0#unw-n0(@ar(0va)x1&kmcal1%3ru)o6y0!)8z#5jlvg(aqm'
+# La clave se lee de la variable de entorno DJANGO_SECRET_KEY. El valor por
+# defecto (inseguro) es solo para desarrollo local. En producción DEBES definir
+# DJANGO_SECRET_KEY con un valor largo y aleatorio (y rotar el que estaba en el repo).
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-(0#unw-n0(@ar(0va)x1&kmcal1%3ru)o6y0!)8z#5jlvg(aqm'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = False - Ajuste de Lanzamiento
-DEBUG = False
+# DEBUG se controla por variable de entorno; por defecto queda apagado.
+# Para desarrollo local: export DJANGO_DEBUG=True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 # ALLOWED_HOSTS = ['yourdomain.com', 'your-server-ip'] - Ajuste de Lanzamiento
 ALLOWED_HOSTS = [
@@ -84,7 +91,8 @@ MIDDLEWARE = [
     'main.middleware.StaffOTPRequiredMiddleware'
 ]
 
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+# El sitio no debe poder embeberse en iframes de terceros (anti-clickjacking).
+X_FRAME_OPTIONS = 'DENY'
 
 ROOT_URLCONF = 'kiosco_sole.urls'
 
@@ -179,3 +187,27 @@ AXES_RESET_ON_SUCCESS = True      # Si se loguea bien, se resetea el contador
 AXES_LOCKOUT_URL = '/acceso-denegado/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ---------------------------------------------------------------------------
+# Cabeceras de seguridad
+# ---------------------------------------------------------------------------
+# Evita que el navegador "adivine" el tipo de contenido (protección XSS/MIME).
+SECURE_CONTENT_TYPE_NOSNIFF = True
+# (X_FRAME_OPTIONS = 'DENY' se define más arriba, junto al middleware.)
+
+# Los siguientes ajustes solo se activan en producción (DEBUG=False) para no
+# romper el desarrollo local sobre http://127.0.0.1.
+if not DEBUG:
+    # Redirige todo el tráfico HTTP a HTTPS.
+    SECURE_SSL_REDIRECT = True
+    # Las cookies de sesión y CSRF solo viajan por HTTPS.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # HTTP Strict Transport Security: fuerza HTTPS por 1 año.
+    # (Activar con cuidado; una vez enviado, el navegador lo recuerda.)
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # Necesario si se corre detrás de un proxy/reverse-proxy con HTTPS
+    # (como PythonAnywhere). Django reconoce así que la conexión es segura.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

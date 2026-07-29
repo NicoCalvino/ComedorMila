@@ -124,18 +124,21 @@
                                 <i class="bi bi-cash-coin me-2"></i> Cargar Saldo
                             </a>
 
-                            <!-- NUEVO: Botón Habilitar/Deshabilitar -->
-                            {% if tarjeta.habilitada %}
-                                <!-- Si está activa, mostramos botón para bloquear/deshabilitar -->
-                                <a href="{% url 'cambiar_estado_tarjeta' tarjeta.id %}" class="btn btn-warning btn-lg rounded-pill px-4" title="Deshabilitar Tarjeta" onclick="return confirm('¿Deshabilitar esta tarjeta?');">
-                                    <i class="bi bi-lock-fill me-2"></i> Deshabilitar
-                                </a>
-                            {% else %}
-                                <!-- Si está inactiva, mostramos botón para desbloquear/habilitar -->
-                                <a href="{% url 'cambiar_estado_tarjeta' tarjeta.id %}" class="btn btn-primary btn-lg rounded-pill px-4" title="Habilitar Tarjeta" onclick="return confirm('¿Habilitar esta tarjeta?');">
-                                    <i class="bi bi-unlock-fill me-2"></i> Habilitar
-                                </a>
-                            {% endif %}
+                            <!-- NUEVO: Botón Habilitar/Deshabilitar (POST para evitar CSRF vía GET) -->
+                            <form action="{% url 'cambiar_estado_tarjeta' tarjeta.id %}" method="POST" class="m-0">
+                                {% csrf_token %}
+                                {% if tarjeta.habilitada %}
+                                    <!-- Si está activa, mostramos botón para bloquear/deshabilitar -->
+                                    <button type="submit" class="btn btn-warning btn-lg rounded-pill px-4" title="Deshabilitar Tarjeta" onclick="return confirm('¿Deshabilitar esta tarjeta?');">
+                                        <i class="bi bi-lock-fill me-2"></i> Deshabilitar
+                                    </button>
+                                {% else %}
+                                    <!-- Si está inactiva, mostramos botón para desbloquear/habilitar -->
+                                    <button type="submit" class="btn btn-primary btn-lg rounded-pill px-4" title="Habilitar Tarjeta" onclick="return confirm('¿Habilitar esta tarjeta?');">
+                                        <i class="bi bi-unlock-fill me-2"></i> Habilitar
+                                    </button>
+                                {% endif %}
+                            </form>
                             
                             <!-- Botón Eliminar / Dar de baja -->
                             <a href="#" class="btn btn-outline-danger btn-lg rounded-pill px-4" onclick="return confirm('¿Dar de baja esta tarjeta?');">

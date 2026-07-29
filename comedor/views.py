@@ -17,6 +17,9 @@ import os
 from django.core.files import File
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 import json
 
 class SuperUserRequiredMixin(UserPassesTestMixin):
@@ -433,18 +436,35 @@ class CargarValeDiarioView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return reverse_lazy('ver_cliente', kwargs={'pk': self.kwargs['pk']})
     
 class CancelarValeDiarioView(LoginRequiredMixin, View):
-    
+
     def post(self, request, pk):
         vale = get_object_or_404(ValeDiario, pk=pk)
+        # Solo el dueño del cliente (o un superusuario) puede cancelar el vale
+        if not request.user.is_superuser and vale.cliente.usuario != request.user:
+            raise PermissionDenied
         vale.cancelado = True
         vale.save()
-        
+
         return redirect('ver_cliente', pk=vale.cliente.pk)
-    
-class HistorialValesDiariosView(LoginRequiredMixin, ListView):
+
+class HistorialValesDiariosView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = ValeDiario
     template_name = "comedor/historial_vales_diarios.html"
     context_object_name = "vales"
+
+    def get_cliente(self):
+        return get_object_or_404(Cliente, pk=self.kwargs.get('pk'))
+
+    def test_func(self):
+        # Solo el dueño del cliente (o un superusuario) puede ver el historial
+        cliente = self.get_cliente()
+        return self.request.user.is_superuser or cliente.usuario == self.request.user
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        messages.error(self.request, 'No tienes permiso para ver ese historial.')
+        return redirect('home')
 
     def get_queryset(self):
         cliente_id = self.kwargs.get('pk')
@@ -453,8 +473,8 @@ class HistorialValesDiariosView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Pasamos el cliente al HTML para poder poner su nombre en el título
-        context['cliente'] = get_object_or_404(Cliente, pk=self.kwargs.get('pk'))
-        context['hoy'] = date.today() 
+        context['cliente'] = self.get_cliente()
+        context['hoy'] = date.today()
         return context
 
 class ImportarValesDiariosView(SuperUserRequiredMixin, View):
@@ -819,7 +839,12 @@ class ReporteFacturacionView(SuperUserRequiredMixin,ListView):
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 
+@login_required
+@require_POST
 def marcar_asistencia_ajax(request, pk):
+    # La gestión de asistencia es exclusiva de administradores
+    if not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': 'No autorizado'}, status=403)
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
