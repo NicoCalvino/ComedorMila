@@ -236,12 +236,20 @@ class ActualizarValeMensualView(LoginRequiredMixin, UserPassesTestMixin, UpdateV
             return True
         
         vale_mensual = self.get_object()
-        
+
         return vale_mensual.usuario == self.request.user
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        messages.error(self.request, 'No tenés permiso para editar ese plan.')
+        return redirect('home')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        cliente = get_object_or_404(Cliente, pk=self.kwargs['pk'])
+        # El pk de la URL es el de ValeMensual, NO el del Cliente. Usamos el
+        # cliente del propio plan para no cargar (ni filtrar) datos de otro cliente.
+        cliente = self.object.cliente
         context['cliente'] = cliente
 
         context['precios_escuela_uno'] = Precio.objects.filter(
