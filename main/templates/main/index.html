@@ -192,6 +192,9 @@
                         <a class="nav-link {% if request.resolver_match.url_name == 'lista_solicitudes' %}active{% endif %}" href="{% url 'lista_solicitudes' %}">Cargar Saldo</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'calendar_view' %}active{% endif %}" href="{% url 'calendar_view' %}">Menú</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'lista_productos' %}active{% endif %}" href="{% url 'lista_productos' %}">Productos</a>
                     </li>
                 {% endif %}
