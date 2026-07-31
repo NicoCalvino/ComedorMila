@@ -11,6 +11,7 @@ import pandas as pd
 from comedor.models import *
 from comedor.forms import *
 from comedor.cargos import generar_cargos_mensuales
+from comedor.exportar import xlsx_response
 from escuela.models import Cliente, Colegio
 from users.models import Perfil
 from datetime import date, datetime, timedelta
@@ -1013,27 +1014,64 @@ class GestionPagosComedorView(SuperUserRequiredMixin, View):
         return redirect('home')
 
 
-class AvisarInasistenciaView(LoginRequiredMixin, View):
-    """Padre: avisa que su hijo hoy no va a comer (hasta las 9:00)."""
-    def post(self, request, pk):
+class AvisarInasistenciasView(LoginRequiredMixin, View):
+    """Padre: avisa una o varias inasistencias (hoy y/o días futuros)."""
+    template_name = 'comedor/avisar_inasistencias.html'
+
+    def _cliente(self, request, pk):
         cliente = get_object_or_404(Cliente, pk=pk)
         if not request.user.is_superuser and cliente.usuario != request.user:
             raise PermissionDenied
-        from comedor.inasistencias import registrar_inasistencia
-        try:
-            inas = registrar_inasistencia(cliente, registrado_por=request.user)
-            if inas.resultado == Inasistencia.DEVOLUCION:
-                messages.success(
-                    request,
-                    f"Inasistencia avisada. Se acreditaron $ {inas.monto_devuelto} a tu cuenta de comedor."
-                )
-            else:
-                messages.success(
-                    request,
-                    "Inasistencia avisada. Te generamos un almuerzo a favor para usar otro día."
-                )
-        except ValueError as e:
-            messages.error(request, str(e))
+        return cliente
+
+    def get(self, request, pk):
+        cliente = self._cliente(request, pk)
+        from comedor.inasistencias import tiene_plan, dias_plan_legibles
+        return render(request, self.template_name, {
+            'cliente': cliente,
+            'tiene_plan': tiene_plan(cliente),
+            'dias_plan': dias_plan_legibles(cliente),
+            'hoy': timezone.localdate().isoformat(),
+        })
+
+    def post(self, request, pk):
+        cliente = self._cliente(request, pk)
+        from comedor.inasistencias import registrar_inasistencias
+
+        fechas = []
+        for s in request.POST.getlist('fechas'):
+            s = (s or '').strip()
+            if not s:
+                continue
+            try:
+                y, m, d = (int(x) for x in s.split('-'))
+                fechas.append(date(y, m, d))
+            except (ValueError, TypeError):
+                continue
+        fechas = list(dict.fromkeys(fechas))  # sin duplicados, conservando orden
+
+        if not fechas:
+            messages.error(request, "Elegí al menos un día.")
+            return redirect('avisar_inasistencias', pk=cliente.pk)
+
+        res = registrar_inasistencias(cliente, fechas)
+        ok = res['ok']
+        if ok:
+            dev = sum(1 for r in ok if r['resultado'] == Inasistencia.DEVOLUCION)
+            vaf = sum(1 for r in ok if r['resultado'] == Inasistencia.VALE_A_FAVOR)
+            sin = sum(1 for r in ok if r['resultado'] == Inasistencia.SIN_COMPENSACION)
+            partes = []
+            if dev:
+                partes.append(f"{dev} con devolución de dinero")
+            if vaf:
+                partes.append(f"{vaf} con almuerzo a favor")
+            if sin:
+                partes.append(f"{sin} sin compensación (aviso tardío de hoy)")
+            messages.success(request, f"Avisaste {len(ok)} inasistencia(s): " + ", ".join(partes) + ".")
+        if res['errores']:
+            detalle = "; ".join(f"{f:%d/%m/%Y} ({m})" for f, m in res['errores'])
+            messages.warning(request, f"No se registraron: {detalle}.")
+
         return redirect('comedor_familia')
 
 
@@ -1079,3 +1117,81 @@ class HistorialComedorView(LoginRequiredMixin, ListView):
         cuenta = self._cuenta()
         context['saldo'] = cuenta.saldo if cuenta else 0
         return context
+
+
+# ---------------------------------------------------------------------------
+# Exportación de reportes a Excel (admin)
+# ---------------------------------------------------------------------------
+
+class _ExcelBase(SuperUserRequiredMixin, View):
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')
+
+
+class ReporteFacturacionExcelView(_ExcelBase):
+    def get(self, request):
+        vista = ReporteFacturacionView()
+        vista.request = request
+        vista.kwargs = {}
+        vista.object_list = vista.get_queryset()
+        ctx = vista.get_context_data(object_list=vista.object_list)
+        headers = ['Familia', 'Alumno', 'Colegio', 'Nivel', 'Días/sem', 'Subtotal']
+        rows = []
+        for fam in ctx['reporte']:
+            for hijo in fam['hijos']:
+                rows.append([str(fam['padre']), hijo['nombre'], str(hijo['colegio']),
+                             hijo['nivel'], hijo['dias'], hijo['subtotal']])
+            rows.append([str(fam['padre']), 'TOTAL FAMILIA', '', '', '', fam['total_padre']])
+        return xlsx_response('facturacion_comedor.xlsx', headers, rows,
+                             'Facturación mensual de comedor')
+
+
+class ReporteDiarioExcelView(_ExcelBase):
+    def get(self, request):
+        vista = ReporteDiarioView()
+        vista.request = request
+        vista.kwargs = {}
+        ctx = vista.get_context_data()
+        fecha = ctx['fecha_consulta']
+        headers = ['Alumno', 'Curso', 'Colegio', 'Nivel', 'Origen', 'Comentarios']
+        rows = []
+        for item in ctx['lista_asistencia']:
+            c = item['cliente']
+            rows.append([f"{c.nombre} {c.apellido}", c.curso.curso, str(c.curso.colegio),
+                         c.curso.nivel, item['origen'], item.get('comentarios') or ''])
+        return xlsx_response(f'reporte_diario_{fecha:%Y-%m-%d}.xlsx', headers, rows,
+                             f'Reporte diario de comedor - {fecha:%d/%m/%Y}')
+
+
+class ComedorMensualExcelView(_ExcelBase):
+    _DIAS = [('lunes', 'Lun'), ('martes', 'Mar'), ('miercoles', 'Mié'),
+             ('jueves', 'Jue'), ('viernes', 'Vie')]
+
+    def get(self, request):
+        headers = ['Alumno', 'Curso', 'Colegio', 'Días', 'Comentarios']
+        rows = []
+        vales = ValeMensual.objects.select_related(
+            'cliente', 'cliente__curso', 'cliente__curso__colegio'
+        ).order_by('cliente__curso__nivel', 'cliente__nombre')
+        for v in vales:
+            dias = ", ".join(lbl for attr, lbl in self._DIAS if getattr(v, attr))
+            c = v.cliente
+            rows.append([f"{c.nombre} {c.apellido}", c.curso.curso, str(c.curso.colegio),
+                         dias, v.comentarios or ''])
+        return xlsx_response('comedor_mensual.xlsx', headers, rows,
+                             'Planes mensuales de comedor')
+
+
+class ValesDiariosExcelView(_ExcelBase):
+    def get(self, request):
+        headers = ['Fecha', 'Alumno', 'Curso', 'Colegio', 'Cancelado', 'Comentarios']
+        rows = []
+        vales = ValeDiario.objects.select_related(
+            'cliente', 'cliente__curso', 'cliente__curso__colegio'
+        ).order_by('-fecha')
+        for v in vales:
+            c = v.cliente
+            rows.append([v.fecha, f"{c.nombre} {c.apellido}", c.curso.curso, str(c.curso.colegio),
+                         'Sí' if v.cancelado else 'No', v.comentarios or ''])
+        return xlsx_response('vales_diarios.xlsx', headers, rows, 'Vales diarios')

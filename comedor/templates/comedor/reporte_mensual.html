@@ -10,9 +10,14 @@
         <h2 class="fw-bold mb-0">
             <i class="bi bi-cash-stack me-2 text-primary"></i> Resumen de Cobros
         </h2>
-        <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm">
-            Total Usuarios: {{ reporte|length }}
-        </span>
+        <div class="d-flex gap-2 align-items-center">
+            <a href="{% url 'reporte_mensual_excel' %}" class="btn btn-success shadow-sm">
+                <i class="bi bi-file-earmark-excel me-2"></i>Descargar Excel
+            </a>
+            <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm">
+                Total Usuarios: {{ reporte|length }}
+            </span>
+        </div>
     </div>
 
     <!-- Filtros -->
@@ -167,4 +172,4 @@
         }
     }
 </style>
-{% endblock %}
+{% endblock %}

@@ -7,7 +7,7 @@ from django.contrib import messages
 from kiosco.models import *
 from comedor.models import CuentaComedor
 from comedor.facturacion import facturacion_padre
-from comedor.inasistencias import puede_avisar
+from comedor.inasistencias import tiene_plan
 
 # Vistas Básicas
 def home(request):
@@ -49,8 +49,7 @@ def comedor_familia(request):
     costo_por_hijo = {hijo['cliente'].pk: hijo['subtotal'] for hijo in factura['hijos']}
     for cliente in clientes:
         cliente.costo_comedor = costo_por_hijo.get(cliente.pk, 0)
-        puede, _motivo = puede_avisar(cliente)
-        cliente.puede_avisar_hoy = puede
+        cliente.tiene_plan = tiene_plan(cliente)
         cliente.vales_a_favor_disponibles = cliente.vales_a_favor.filter(usado=False)
 
     cuenta = CuentaComedor.objects.filter(usuario=request.user).first()

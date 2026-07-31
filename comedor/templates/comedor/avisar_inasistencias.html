@@ -1,0 +1,90 @@
+{% extends 'main/index.html' %}
+{% block titulo %}<title>Avisar inasistencias</title>{% endblock %}
+
+{% block Bienvenida %}{% endblock %}
+
+{% block content %}
+<div class="container my-5" style="max-width: 680px;">
+
+    <div class="mb-4">
+        <a href="{% url 'comedor_familia' %}" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left"></i> Volver a Comedor
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-calendar-x text-danger me-2"></i>Avisar inasistencias
+            </h4>
+            <p class="text-muted mb-0">{{ cliente.nombre }} {{ cliente.apellido }} — {{ cliente.curso.curso }}</p>
+        </div>
+        <div class="card-body p-4">
+
+            {% if not tiene_plan %}
+                <div class="alert alert-light border">
+                    Este alumno no tiene un plan mensual de comedor, así que no hay días para avisar.
+                </div>
+            {% else %}
+                <p class="text-muted">
+                    Elegí uno o varios días en los que tu hijo/a no va a comer. Podés avisar el día de
+                    <strong>hoy</strong> y <strong>días futuros</strong>. Solo cuentan los días de comedor de su plan:
+                    <strong>{{ dias_plan|join:", " }}</strong>.
+                </p>
+                <div class="alert alert-warning small">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    El aviso del día de hoy se puede compensar solo hasta las <strong>9:00</strong>. Si ya pasó esa hora,
+                    igual queda registrado el aviso, pero ese día no lleva compensación. Los días futuros siempre se compensan.
+                </div>
+
+                <form method="post" class="mt-3">
+                    {% csrf_token %}
+                    <label class="form-label fw-bold">Días a avisar</label>
+                    <div id="dias-container" class="vstack gap-2">
+                        <div class="input-group">
+                            <input type="date" name="fechas" class="form-control" min="{{ hoy }}" required>
+                            <button type="button" class="btn btn-outline-secondary btn-quitar" title="Quitar" tabindex="-1">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="button" id="agregar-dia" class="btn btn-link text-decoration-none px-0 mt-2">
+                        <i class="bi bi-plus-lg me-1"></i>Agregar otro día
+                    </button>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
+                            <i class="bi bi-calendar-x me-2"></i>Avisar inasistencias
+                        </button>
+                        <a href="{% url 'comedor_familia' %}" class="btn btn-light rounded-pill px-4 border">Cancelar</a>
+                    </div>
+                </form>
+
+                <script>
+                    (function () {
+                        var cont = document.getElementById('dias-container');
+                        var min = "{{ hoy }}";
+                        document.getElementById('agregar-dia').addEventListener('click', function () {
+                            var row = document.createElement('div');
+                            row.className = 'input-group';
+                            row.innerHTML = '<input type="date" name="fechas" class="form-control" min="' + min + '">' +
+                                '<button type="button" class="btn btn-outline-secondary btn-quitar" title="Quitar" tabindex="-1"><i class="bi bi-x-lg"></i></button>';
+                            cont.appendChild(row);
+                        });
+                        cont.addEventListener('click', function (e) {
+                            var btn = e.target.closest('.btn-quitar');
+                            if (!btn) return;
+                            if (cont.querySelectorAll('.input-group').length > 1) {
+                                btn.closest('.input-group').remove();
+                            } else {
+                                btn.closest('.input-group').querySelector('input').value = '';
+                            }
+                        });
+                    })();
+                </script>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

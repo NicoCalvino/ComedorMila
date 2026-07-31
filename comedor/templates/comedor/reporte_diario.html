@@ -35,9 +35,14 @@
             </a>
         </div>
 
-        <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm">
-            Total: {{ lista_asistencia|length }} Comensales
-        </span>
+        <div class="d-flex gap-2 align-items-center">
+            <a href="{% url 'reporte_diario_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success shadow-sm">
+                <i class="bi bi-file-earmark-excel me-2"></i>Descargar Excel
+            </a>
+            <span class="badge bg-dark px-3 py-2 rounded-pill shadow-sm">
+                Total: {{ lista_asistencia|length }} Comensales
+            </span>
+        </div>
     </div>
 
     <div class="card shadow-sm border-0 mb-4 bg-light">
@@ -197,4 +202,4 @@
         .table-responsive { overflow: visible !important; max-height: none !important; }
     }
 </style>
-{% endblock %}
+{% endblock %}

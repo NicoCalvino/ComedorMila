@@ -289,9 +289,11 @@ class SolicitudPagoComedor(models.Model):
 class Inasistencia(models.Model):
     DEVOLUCION = 'DEVOLUCION'
     VALE_A_FAVOR = 'VALE_A_FAVOR'
+    SIN_COMPENSACION = 'SIN_COMPENSACION'
     RESULTADOS = (
         (DEVOLUCION, "Devolución de dinero (plan 5 días)"),
         (VALE_A_FAVOR, "Vale a favor (plan 1-4 días)"),
+        (SIN_COMPENSACION, "Sin compensación (aviso tardío)"),
     )
 
     cliente = models.ForeignKey(

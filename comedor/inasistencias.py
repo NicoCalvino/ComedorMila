@@ -1,13 +1,16 @@
 """Régimen de inasistencias avisadas.
 
-Reglas acordadas:
-- El padre avisa la falta SOLO el mismo día, hasta las 9:00 (hora local). Después
-  de las 9 se considera sin aviso (no compensa).
-- Solo vale para un día en que el alumno tiene comedor por su PLAN MENSUAL.
-- Plan de 5 días: se acredita dinero = (precio_mensual_del_hijo / divisor) x
-  porcentaje. divisor y porcentaje salen de ConfiguracionComedor (20 y 0.60).
-- Plan de 1 a 4 días: se genera un ValeAFavor (almuerzo a favor flotante, no vence).
-- Sin aviso: nada.
+El padre puede avisar VARIAS ausencias de una sola vez, incluso de días futuros
+(sin límite hacia adelante). Reglas:
+- Solo se pueden avisar días de comedor del PLAN MENSUAL del alumno (no fines de
+  semana ni días sin comedor), de hoy en adelante.
+- Día de HOY: si ya pasaron las 9:00, se registra igual como inasistencia pero
+  SIN compensación (deja constancia de que el chico no va). Antes de las 9 sí
+  compensa.
+- Días FUTUROS: siempre compensan (se avisan con anticipación).
+- Compensación según el plan: 5 días -> crédito de dinero = (precio_mensual /
+  divisor) x porcentaje; 1 a 4 días -> un almuerzo a favor (ValeAFavor).
+- Constantes (porcentaje y divisor) de ConfiguracionComedor.
 """
 
 from datetime import time
@@ -24,6 +27,7 @@ from comedor.cargos import _dias_semana_del_plan
 from comedor.facturacion import facturacion_padre
 
 LIMITE_AVISO = time(9, 0)
+_NOMBRES_DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
 
 
 def _subtotal_mensual_hijo(cliente):
@@ -35,70 +39,93 @@ def _subtotal_mensual_hijo(cliente):
     return Decimal('0')
 
 
-def puede_avisar(cliente, ahora=None):
-    """(True, '') si se puede avisar la inasistencia ahora; si no (False, motivo)."""
-    ahora = ahora or timezone.localtime()
-    hoy = ahora.date()
+def tiene_plan(cliente):
+    return getattr(cliente, 'vale_mensual', None) is not None
 
-    if ahora.time() >= LIMITE_AVISO:
-        return False, "El aviso se puede hacer hasta las 9:00. Ya pasó el horario de hoy."
 
+def dias_plan_legibles(cliente):
+    """Nombres de los días de comedor del plan (para mostrar al padre)."""
     vale = getattr(cliente, 'vale_mensual', None)
     if not vale:
-        return False, "El alumno no tiene un plan mensual de comedor."
-
-    if hoy.weekday() not in _dias_semana_del_plan(vale):
-        return False, "Hoy el alumno no tiene comedor según su plan."
-
-    if Inasistencia.objects.filter(cliente=cliente, fecha=hoy).exists():
-        return False, "Ya avisaste la inasistencia de hoy para este alumno."
-
-    return True, ""
+        return []
+    return [_NOMBRES_DIAS[i] for i in sorted(_dias_semana_del_plan(vale))]
 
 
-def registrar_inasistencia(cliente, registrado_por=None, ahora=None):
-    """Registra la inasistencia de hoy y aplica la compensación según el plan.
+def _validar_dia(cliente, fecha, hoy):
+    """Devuelve el motivo de rechazo (str) o None si el día es válido para avisar."""
+    if fecha < hoy:
+        return "es un día que ya pasó"
+    vale = getattr(cliente, 'vale_mensual', None)
+    if not vale:
+        return "el alumno no tiene plan mensual"
+    if fecha.weekday() not in _dias_semana_del_plan(vale):
+        return "no es un día de comedor del plan"
+    if Inasistencia.objects.filter(cliente=cliente, fecha=fecha).exists():
+        return "ya estaba avisado"
+    return None
 
-    Devuelve la Inasistencia creada. Lanza ValueError si no corresponde avisar.
+
+def _compensar(cliente, inas):
+    """Aplica la compensación (crédito o vale a favor) a una inasistencia ya creada."""
+    dias = len(_dias_semana_del_plan(cliente.vale_mensual))
+    if dias == 5:
+        config = ConfiguracionComedor.get_solo()
+        subtotal = _subtotal_mensual_hijo(cliente)
+        valor_dia = subtotal / config.divisor_valor_dia if config.divisor_valor_dia else Decimal('0')
+        credito = (valor_dia * config.porcentaje_devolucion_inasistencia).quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP)
+        inas.resultado = Inasistencia.DEVOLUCION
+        inas.monto_devuelto = credito
+        inas.save()
+        if credito > 0:
+            cuenta = CuentaComedor.para(cliente.usuario)
+            mov = cuenta.agregar_movimiento(
+                MovimientoComedor.CREDITO_INASISTENCIA, -credito,
+                concepto=f"Crédito por inasistencia {inas.fecha:%d/%m/%Y} - {cliente.nombre} {cliente.apellido}",
+            )
+            inas.movimiento = mov
+            inas.save(update_fields=['movimiento'])
+    else:
+        inas.resultado = Inasistencia.VALE_A_FAVOR
+        inas.save()
+        ValeAFavor.objects.create(cliente=cliente, inasistencia=inas)
+
+
+def registrar_inasistencia_dia(cliente, fecha, ahora=None):
+    """Registra la inasistencia de un día (hoy o futuro).
+
+    Devuelve un dict {'fecha', 'resultado', 'monto'}. Lanza ValueError si el día
+    no es válido (pasado, sin plan, no es día de comedor, o ya avisado).
     """
-    ok, motivo = puede_avisar(cliente, ahora=ahora)
-    if not ok:
-        raise ValueError(motivo)
-
     ahora = ahora or timezone.localtime()
     hoy = ahora.date()
-    vale = cliente.vale_mensual
-    dias = len(_dias_semana_del_plan(vale))
+
+    motivo = _validar_dia(cliente, fecha, hoy)
+    if motivo:
+        raise ValueError(motivo)
+
+    tardio = (fecha == hoy and ahora.time() >= LIMITE_AVISO)
 
     with transaction.atomic():
-        inas = Inasistencia(cliente=cliente, fecha=hoy, avisado_en=timezone.now())
-
-        if dias == 5:
-            # Devolución de dinero (crédito en la cuenta).
-            config = ConfiguracionComedor.get_solo()
-            subtotal = _subtotal_mensual_hijo(cliente)
-            valor_dia = subtotal / config.divisor_valor_dia if config.divisor_valor_dia else Decimal('0')
-            credito = (valor_dia * config.porcentaje_devolucion_inasistencia).quantize(
-                Decimal('0.01'), rounding=ROUND_HALF_UP)
-            inas.resultado = Inasistencia.DEVOLUCION
-            inas.monto_devuelto = credito
+        inas = Inasistencia(cliente=cliente, fecha=fecha, avisado_en=timezone.now())
+        if tardio:
+            inas.resultado = Inasistencia.SIN_COMPENSACION
             inas.save()
-            if credito > 0:
-                cuenta = CuentaComedor.para(cliente.usuario)
-                mov = cuenta.agregar_movimiento(
-                    MovimientoComedor.CREDITO_INASISTENCIA, -credito,
-                    concepto=f"Crédito por inasistencia {hoy:%d/%m/%Y} - {cliente.nombre} {cliente.apellido}",
-                    registrado_por=registrado_por,
-                )
-                inas.movimiento = mov
-                inas.save(update_fields=['movimiento'])
         else:
-            # Plan de 1 a 4 días: almuerzo a favor.
-            inas.resultado = Inasistencia.VALE_A_FAVOR
-            inas.save()
-            ValeAFavor.objects.create(cliente=cliente, inasistencia=inas)
+            _compensar(cliente, inas)
 
-    return inas
+    return {'fecha': fecha, 'resultado': inas.resultado, 'monto': inas.monto_devuelto}
+
+
+def registrar_inasistencias(cliente, fechas, ahora=None):
+    """Procesa una tanda de días. Devuelve {'ok': [dict...], 'errores': [(fecha, motivo)...]}."""
+    ok, errores = [], []
+    for fecha in fechas:
+        try:
+            ok.append(registrar_inasistencia_dia(cliente, fecha, ahora=ahora))
+        except ValueError as e:
+            errores.append((fecha, str(e)))
+    return {'ok': ok, 'errores': errores}
 
 
 def usar_vale_a_favor(vale_a_favor, fecha, usuario=None):
