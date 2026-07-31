@@ -48,6 +48,28 @@
         <div class="col-md-5 col-lg-3">
             <div class="card card-custom p-4 text-center h-100 position-relative">
                 <div class="icon-box text-success">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+                <h4 class="fw-bold">Generar cargos del mes</h4>
+                <p class="text-muted small">Carga el costo del mes en la cuenta de cada familia.</p>
+                <a href="{% url 'generar_cargos_mensuales' %}" class="btn btn-outline-success w-100 mt-auto stretched-link">Generar cargos</a>
+            </div>
+        </div>
+
+        <div class="col-md-5 col-lg-3">
+            <div class="card card-custom p-4 text-center h-100 position-relative">
+                <div class="icon-box text-success">
+                    <i class="bi bi-check2-square"></i>
+                </div>
+                <h4 class="fw-bold">Pagos de comedor</h4>
+                <p class="text-muted small">Aprobá o rechazá los pagos que envían las familias.</p>
+                <a href="{% url 'gestion_pagos_comedor' %}" class="btn btn-outline-success w-100 mt-auto stretched-link">Ver pagos</a>
+            </div>
+        </div>
+
+        <div class="col-md-5 col-lg-3">
+            <div class="card card-custom p-4 text-center h-100 position-relative">
+                <div class="icon-box text-success">
                     <i class="bi bi-calendar-check"></i>
                 </div>
                 <h4 class="fw-bold">Comedor Mensual</h4>
@@ -108,4 +130,4 @@
         </a>
     </div>
 </div>
-{% endblock %}
+{% endblock %}

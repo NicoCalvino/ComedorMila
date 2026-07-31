@@ -2,6 +2,30 @@ from django import forms
 from comedor.models import *
 from datetime import date
 
+
+class SolicitudPagoComedorForm(forms.ModelForm):
+    comprobante = forms.ImageField(
+        required=True,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        label="Comprobante (foto de la transferencia/pago)",
+    )
+
+    class Meta:
+        model = SolicitudPagoComedor
+        fields = ['monto', 'comprobante']
+        widgets = {
+            'monto': forms.NumberInput(attrs={
+                'class': 'form-control', 'min': '1', 'step': '0.01',
+                'placeholder': 'Monto pagado',
+            }),
+        }
+
+    def clean_monto(self):
+        monto = self.cleaned_data.get('monto')
+        if monto is None or monto <= 0:
+            raise forms.ValidationError("El monto debe ser mayor a cero.")
+        return monto
+
 class PrecioForm(forms.ModelForm):
     class Meta:
         model = Precio
@@ -102,4 +126,4 @@ class ValeDiarioForm(forms.ModelForm):
                     f"Este cliente ya tiene un vale cargado para el día {fecha_ingresada}."
                 )
 
-        return fecha_ingresada
+        return fecha_ingresada

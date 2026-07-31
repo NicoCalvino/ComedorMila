@@ -5,6 +5,9 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from kiosco.models import *
+from comedor.models import CuentaComedor
+from comedor.facturacion import facturacion_padre
+from comedor.inasistencias import puede_avisar
 
 # Vistas Básicas
 def home(request):
@@ -18,6 +21,48 @@ def home(request):
         return render(request, "main/index_admin.html")
     
     return render(request, "main/index.html", {'clientes': clientes})
+
+
+@login_required
+def kiosco_familia(request):
+    """Sección Kiosco del padre: la grilla de sus alumnos (como el home anterior)."""
+    if request.user.is_superuser or request.user.is_staff:
+        return redirect('home')
+
+    clientes = Cliente.objects.filter(usuario=request.user)
+    return render(request, "main/kiosco_familia.html", {'clientes': clientes})
+
+
+@login_required
+def comedor_familia(request):
+    """Sección Comedor del padre: bloque por alumno + costo mensual del comedor.
+
+    El "Saldo Comedor" es el costo mensual del comedor calculado con la misma
+    lógica de facturación del admin (días/semana x tabla de precios, con
+    descuento familiar), no la suma de saldo de las tarjetas.
+    """
+    if request.user.is_superuser or request.user.is_staff:
+        return redirect('home')
+
+    clientes = list(Cliente.objects.filter(usuario=request.user))
+    factura = facturacion_padre(request.user)
+    costo_por_hijo = {hijo['cliente'].pk: hijo['subtotal'] for hijo in factura['hijos']}
+    for cliente in clientes:
+        cliente.costo_comedor = costo_por_hijo.get(cliente.pk, 0)
+        puede, _motivo = puede_avisar(cliente)
+        cliente.puede_avisar_hoy = puede
+        cliente.vales_a_favor_disponibles = cliente.vales_a_favor.filter(usado=False)
+
+    cuenta = CuentaComedor.objects.filter(usuario=request.user).first()
+    saldo_cuenta = cuenta.saldo if cuenta else 0
+    movimientos = list(cuenta.movimientos.all()[:10]) if cuenta else []
+
+    return render(request, "main/comedor_familia.html", {
+        'clientes': clientes,
+        'saldo_cuenta': saldo_cuenta,
+        'costo_estimado': factura['total'],
+        'movimientos': movimientos,
+    })
 
 @user_passes_test(lambda u: u.is_superuser)
 def resultado_importacion(request):
@@ -52,4 +97,4 @@ def verificacion_otp(request):
         else:
             messages.error(request, "Código inválido o expirado. Intenta de nuevo.")
     
-    return render(request, 'main/otp_custom.html')
+    return render(request, 'main/otp_custom.html')

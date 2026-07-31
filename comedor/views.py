@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.contrib import messages
@@ -10,6 +10,7 @@ from django.db.models.functions import Cast
 import pandas as pd
 from comedor.models import *
 from comedor.forms import *
+from comedor.cargos import generar_cargos_mensuales
 from escuela.models import Cliente, Colegio
 from users.models import Perfil
 from datetime import date, datetime, timedelta
@@ -22,6 +23,14 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 import json
+
+def _destino_comedor(user):
+    """A dónde volver tras una acción de comedor: el padre a su página de
+    Comedor; el staff/admin al home del comedor."""
+    if user.is_superuser or user.is_staff:
+        return reverse_lazy('comedor_home')
+    return reverse_lazy('comedor_familia')
+
 
 class SuperUserRequiredMixin(UserPassesTestMixin):
     def test_func(self):
@@ -217,19 +226,26 @@ class CargarValeMensualView(LoginRequiredMixin, UserPassesTestMixin, CreateView)
     
     def form_valid(self, form):
         cliente = get_object_or_404(Cliente, pk=self.kwargs['pk'])
-        
+
         form.instance.cliente = cliente
         form.instance.usuario = self.request.user # O ajustalo según cómo se llame tu relación de perfil
-        
+        # Marca desde cuándo rige este plan (para prorratear el cargo del mes).
+        form.instance.vigente_desde = timezone.localdate()
+
         return super().form_valid(form)
-    
+
     def get_success_url(self):
-        return reverse_lazy('ver_cliente', kwargs={'pk': self.kwargs['pk']})
-    
+        return _destino_comedor(self.request.user)
+
 class ActualizarValeMensualView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = ValeMensual
     template_name = "comedor/vale_mensual.html"
     form_class = ValeMensualForm
+
+    def form_valid(self, form):
+        # Un cambio de plan reinicia su vigencia (para prorratear el mes en curso).
+        form.instance.vigente_desde = timezone.localdate()
+        return super().form_valid(form)
 
     def test_func(self):
         if self.request.user.is_superuser:
@@ -278,7 +294,7 @@ class ActualizarValeMensualView(LoginRequiredMixin, UserPassesTestMixin, UpdateV
         return context
 
     def get_success_url(self):
-        return reverse_lazy('ver_cliente', kwargs={'pk': self.object.cliente.pk})
+        return _destino_comedor(self.request.user)
     
 class ImportarValesMensualesView(SuperUserRequiredMixin, View):
     def post(self, request, *args, **kwargs):
@@ -442,7 +458,7 @@ class CargarValeDiarioView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return super().form_valid(form)
     
     def get_success_url(self):
-        return reverse_lazy('ver_cliente', kwargs={'pk': self.kwargs['pk']})
+        return _destino_comedor(self.request.user)
     
 class CancelarValeDiarioView(LoginRequiredMixin, View):
 
@@ -454,7 +470,9 @@ class CancelarValeDiarioView(LoginRequiredMixin, View):
         vale.cancelado = True
         vale.save()
 
-        return redirect('ver_cliente', pk=vale.cliente.pk)
+        if request.user.is_superuser or request.user.is_staff:
+            return redirect('comedor_home')
+        return redirect('comedor_familia')
 
 class HistorialValesDiariosView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = ValeDiario
@@ -880,3 +898,162 @@ def marcar_asistencia_ajax(request, pk):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+
+class GenerarCargosMensualesView(SuperUserRequiredMixin, View):
+    """Admin: genera los cargos mensuales de comedor de un período (idempotente)."""
+    template_name = 'comedor/generar_cargos.html'
+
+    def get(self, request):
+        hoy = timezone.localdate()
+        return render(request, self.template_name, {'year': hoy.year, 'month': hoy.month})
+
+    def post(self, request):
+        try:
+            year = int(request.POST.get('year'))
+            month = int(request.POST.get('month'))
+            if not (1 <= month <= 12):
+                raise ValueError
+        except (TypeError, ValueError):
+            messages.error(request, "Período inválido.")
+            return redirect('generar_cargos_mensuales')
+
+        resultado = generar_cargos_mensuales(year, month, registrado_por=request.user)
+        messages.success(
+            request,
+            f"Cargos {resultado['periodo']}: {len(resultado['creados'])} generados, "
+            f"{len(resultado['omitidos'])} omitidos. Total $ {resultado['total']}."
+        )
+        return render(request, self.template_name, {
+            'year': year, 'month': month, 'resultado': resultado,
+        })
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')
+
+class RegistrarPagoComedorView(LoginRequiredMixin, CreateView):
+    """Padre: registra un pago de comedor subiendo el comprobante. Queda
+    pendiente hasta que el admin lo apruebe."""
+    model = SolicitudPagoComedor
+    form_class = SolicitudPagoComedorForm
+    template_name = 'comedor/registrar_pago.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
+            return redirect('home')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cuenta = CuentaComedor.objects.filter(usuario=self.request.user).first()
+        context['saldo'] = cuenta.saldo if cuenta else 0
+        return context
+
+    def form_valid(self, form):
+        form.instance.usuario = self.request.user
+        form.instance.estado = SolicitudPagoComedor.PENDIENTE
+        messages.success(self.request, "¡Pago registrado! Queda pendiente de aprobación.")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('comedor_familia')
+
+
+class GestionPagosComedorView(SuperUserRequiredMixin, View):
+    """Admin: lista los pagos pendientes y permite aprobar o rechazar."""
+    template_name = 'comedor/gestion_pagos.html'
+
+    def get(self, request):
+        pendientes = SolicitudPagoComedor.objects.filter(
+            estado=SolicitudPagoComedor.PENDIENTE,
+        ).select_related('usuario')
+        resueltas = SolicitudPagoComedor.objects.exclude(
+            estado=SolicitudPagoComedor.PENDIENTE,
+        ).select_related('usuario', 'resuelto_por')[:20]
+        return render(request, self.template_name, {
+            'pendientes': pendientes, 'resueltas': resueltas,
+        })
+
+    def post(self, request):
+        sol = get_object_or_404(SolicitudPagoComedor, pk=request.POST.get('pago_id'))
+        accion = request.POST.get('accion')
+        if accion == 'aprobar':
+            sol.aprobar(request.user)
+            messages.success(request, f"Pago de {sol.usuario} aprobado. Se descontó del saldo.")
+        elif accion == 'rechazar':
+            sol.rechazar(request.user)
+            messages.info(request, f"Pago de {sol.usuario} rechazado.")
+        return redirect('gestion_pagos_comedor')
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')
+
+
+class AvisarInasistenciaView(LoginRequiredMixin, View):
+    """Padre: avisa que su hijo hoy no va a comer (hasta las 9:00)."""
+    def post(self, request, pk):
+        cliente = get_object_or_404(Cliente, pk=pk)
+        if not request.user.is_superuser and cliente.usuario != request.user:
+            raise PermissionDenied
+        from comedor.inasistencias import registrar_inasistencia
+        try:
+            inas = registrar_inasistencia(cliente, registrado_por=request.user)
+            if inas.resultado == Inasistencia.DEVOLUCION:
+                messages.success(
+                    request,
+                    f"Inasistencia avisada. Se acreditaron $ {inas.monto_devuelto} a tu cuenta de comedor."
+                )
+            else:
+                messages.success(
+                    request,
+                    "Inasistencia avisada. Te generamos un almuerzo a favor para usar otro día."
+                )
+        except ValueError as e:
+            messages.error(request, str(e))
+        return redirect('comedor_familia')
+
+
+class UsarValeAFavorView(LoginRequiredMixin, View):
+    """Padre: usa un almuerzo a favor eligiendo un día futuro."""
+    def post(self, request, pk):
+        vaf = get_object_or_404(ValeAFavor, pk=pk)
+        if not request.user.is_superuser and vaf.cliente.usuario != request.user:
+            raise PermissionDenied
+        from comedor.inasistencias import usar_vale_a_favor
+        fecha_str = request.POST.get('fecha', '')
+        try:
+            y, m, d = (int(x) for x in fecha_str.split('-'))
+            fecha = date(y, m, d)
+        except (ValueError, TypeError):
+            messages.error(request, "Elegí una fecha válida.")
+            return redirect('comedor_familia')
+        try:
+            usar_vale_a_favor(vaf, fecha, usuario=request.user)
+            messages.success(request, f"¡Listo! Almuerzo a favor agendado para el {fecha:%d/%m/%Y}.")
+        except ValueError as e:
+            messages.error(request, str(e))
+        return redirect('comedor_familia')
+
+
+class HistorialComedorView(LoginRequiredMixin, ListView):
+    """Padre: historial completo de movimientos de su cuenta de comedor."""
+    template_name = 'comedor/historial_comedor.html'
+    context_object_name = 'movimientos'
+    paginate_by = 30
+
+    def _cuenta(self):
+        return CuentaComedor.objects.filter(usuario=self.request.user).first()
+
+    def get_queryset(self):
+        cuenta = self._cuenta()
+        if not cuenta:
+            return MovimientoComedor.objects.none()
+        return cuenta.movimientos.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        cuenta = self._cuenta()
+        context['saldo'] = cuenta.saldo if cuenta else 0
+        return context

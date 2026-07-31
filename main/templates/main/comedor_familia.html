@@ -1,0 +1,253 @@
+{% extends 'main/index.html' %}
+{% load humanize %}
+{% block titulo %}<title>Comedor - Mis alumnos</title>{% endblock %}
+
+{% block Bienvenida %}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+    <div class="mb-4">
+        <a href="{% url 'home' %}" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left"></i> Volver al inicio
+        </a>
+    </div>
+
+    <h2 class="fw-bold mb-4"><i class="bi bi-cup-hot-fill text-warning me-2"></i>Comedor</h2>
+
+    {% for cliente in clientes %}
+    <!-- Bloque de comedor del alumno -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="fw-bold mb-0">
+                <i class="bi bi-person-badge-fill text-primary me-2"></i>{{ cliente.nombre }} {{ cliente.apellido }}
+            </h5>
+            <span class="badge bg-info text-dark">{{ cliente.curso.curso }} - {{ cliente.curso.colegio.nombre }}</span>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-4">
+
+                <!-- COLUMNA IZQUIERDA: Plan Mensual -->
+                <div class="col-lg-6 border-end-lg position-relative d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-muted mb-0"><i class="bi bi-calendar-month text-primary me-2"></i>Plan Mensual</h6>
+                    </div>
+
+                    {% if cliente.vale_mensual %}
+                        <div class="alert alert-light border border-primary text-center py-4 rounded-3 flex-grow-1 d-flex flex-column justify-content-center">
+                            <span class="d-block mb-3 text-muted small fw-bold text-uppercase">Días de la semana asignados</span>
+
+                            <div class="d-flex justify-content-center gap-2 flex-wrap mb-3">
+                                <span class="badge rounded-pill px-3 py-2 fs-6 {% if cliente.vale_mensual.lunes %}bg-primary text-white shadow-sm{% else %}bg-light text-muted border opacity-50{% endif %}">Lunes</span>
+                                <span class="badge rounded-pill px-3 py-2 fs-6 {% if cliente.vale_mensual.martes %}bg-primary text-white shadow-sm{% else %}bg-light text-muted border opacity-50{% endif %}">Martes</span>
+                                <span class="badge rounded-pill px-3 py-2 fs-6 {% if cliente.vale_mensual.miercoles %}bg-primary text-white shadow-sm{% else %}bg-light text-muted border opacity-50{% endif %}">Miércoles</span>
+                                <span class="badge rounded-pill px-3 py-2 fs-6 {% if cliente.vale_mensual.jueves %}bg-primary text-white shadow-sm{% else %}bg-light text-muted border opacity-50{% endif %}">Jueves</span>
+                                <span class="badge rounded-pill px-3 py-2 fs-6 {% if cliente.vale_mensual.viernes %}bg-primary text-white shadow-sm{% else %}bg-light text-muted border opacity-50{% endif %}">Viernes</span>
+                            </div>
+
+                            {% if cliente.vale_mensual.comentarios %}
+                                <div class="mb-4 text-muted small fst-italic px-3">
+                                    <i class="bi bi-info-circle-fill text-secondary me-1"></i> {{ cliente.vale_mensual.comentarios }}
+                                </div>
+                            {% else %}
+                                <div class="mb-4"></div>
+                            {% endif %}
+
+                            <div class="mb-3 fw-bold text-primary fs-5">
+                                Costo mensual: $ {{ cliente.costo_comedor|floatformat:"0"|intcomma }}
+                            </div>
+
+                            <div>
+                                <a href="{% url 'editar_vale_mensual' cliente.vale_mensual.pk %}" class="btn btn-outline-primary rounded-pill px-4">
+                                    <i class="bi bi-pencil-square me-2"></i> Editar plan
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-muted bg-light rounded-3 flex-grow-1 d-flex flex-column justify-content-center" style="border: 2px dashed #dee2e6;">
+                            <i class="bi bi-calendar-x fs-1 mb-2 d-block opacity-50"></i>
+                            <p class="mb-3">El cliente no tiene un plan mensual activo.</p>
+                            <div>
+                                <a href="{% url 'carga_vale_mensual' cliente.pk %}" class="btn btn-primary rounded-pill px-4">
+                                    <i class="bi bi-plus-lg me-2"></i> Cargar Plan Mensual
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <hr class="d-lg-none mt-4">
+                </div>
+
+                <!-- COLUMNA DERECHA: Inscripciones Diarias -->
+                <div class="col-lg-6 d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-muted mb-0"><i class="bi bi-calendar-day text-success me-2"></i>Inscripciones Diarias</h6>
+                        <a href="{% url 'carga_vale_diario' cliente.pk %}" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                            <i class="bi bi-plus-lg me-1"></i> Cargar día
+                        </a>
+                    </div>
+
+                    <div class="card border rounded-3 bg-light shadow-none flex-grow-1">
+                        <div class="card-body p-3 d-flex flex-column justify-content-center">
+
+                            {% if cliente.vales_diarios_pendientes %}
+                                <div class="vstack gap-2">
+                                    {% for vale in cliente.vales_diarios_pendientes %}
+                                    <div class="d-flex align-items-center justify-content-between p-2 bg-white border rounded-3 shadow-sm">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                                <span class="fw-bold text-dark">{{ vale.fecha|date:"l d/m/Y" }}</span>
+                                            </div>
+                                            {% if vale.comentarios %}
+                                                <div class="ms-4 small text-muted fst-italic">
+                                                    <i class="bi bi-chat-left-dots me-1"></i>{{ vale.comentarios }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="ms-2">
+                                            <form action="{% url 'cancelar_vale_diario' vale.pk %}" method="POST" class="m-0">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill py-0 px-2" style="font-size: 0.75rem;" title="Cancelar comida" onclick="return confirm('¿Estás seguro de cancelar este día?');">
+                                                    <i class="bi bi-trash-fill me-1"></i> Cancelar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-3 text-muted">
+                                    <i class="bi bi-calendar-check fs-2 mb-2 d-block opacity-25"></i>
+                                    <p class="small mb-0">No hay inscripciones diarias futuras pendientes.</p>
+                                </div>
+                            {% endif %}
+
+                            <hr class="text-muted opacity-25 my-3">
+                            <div class="mt-auto">
+                                <a href="{% url 'historial_vales_diarios' cliente.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill w-100 fw-bold">
+                                    <i class="bi bi-clock-history me-1"></i> Ver historial completo de días
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Inasistencias avisadas y almuerzos a favor -->
+            {% if cliente.puede_avisar_hoy or cliente.vales_a_favor_disponibles %}
+            <div class="mt-4 pt-3 border-top">
+                {% if cliente.puede_avisar_hoy %}
+                <form method="post" action="{% url 'avisar_inasistencia' cliente.pk %}" class="d-inline"
+                      onsubmit="return confirm('¿Avisar que {{ cliente.nombre }} hoy no va a comer?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
+                        <i class="bi bi-calendar-x me-1"></i> Avisar que hoy falta
+                    </button>
+                </form>
+                <span class="text-muted small ms-2">Se puede avisar hasta las 9:00.</span>
+                {% endif %}
+
+                {% if cliente.vales_a_favor_disponibles %}
+                <div class="mt-3">
+                    <span class="fw-bold text-success">
+                        <i class="bi bi-gift me-1"></i>Almuerzos a favor disponibles: {{ cliente.vales_a_favor_disponibles|length }}
+                    </span>
+                    <p class="text-muted small mb-2">Elegí un día para usar cada almuerzo a favor (sin costo).</p>
+                    {% for vaf in cliente.vales_a_favor_disponibles %}
+                    <form method="post" action="{% url 'usar_vale_a_favor' vaf.pk %}" class="row g-2 align-items-center mb-1">
+                        {% csrf_token %}
+                        <div class="col-auto">
+                            <input type="date" name="fecha" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-success rounded-pill px-3">
+                                <i class="bi bi-check2 me-1"></i>Usar
+                            </button>
+                        </div>
+                    </form>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-people fs-1 mb-3 d-block opacity-50"></i>
+            <p>No tenés alumnos registrados todavía.</p>
+        </div>
+    {% endfor %}
+
+    <!-- Bloque SALDO COMEDOR: saldo real de la cuenta + movimientos -->
+    {% if clientes %}
+    <div class="card border-0 shadow-sm rounded-4 mt-2">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-wallet2 text-primary me-2"></i>Saldo Comedor</h5>
+                    {% if saldo_cuenta > 0 %}
+                        <p class="text-muted small mb-0">Esto es lo que tenés pendiente de pago en el comedor.</p>
+                    {% elif saldo_cuenta < 0 %}
+                        <p class="text-muted small mb-0">Tenés saldo a favor en el comedor.</p>
+                    {% else %}
+                        <p class="text-muted small mb-0">Estás al día con el comedor.</p>
+                    {% endif %}
+                    <p class="text-muted small mb-0">Costo estimado de este mes: $ {{ costo_estimado|floatformat:"0"|intcomma }}.</p>
+                </div>
+                <div class="text-end">
+                    {% if saldo_cuenta > 0 %}
+                        <span class="d-block text-muted small text-uppercase fw-bold">Debés</span>
+                        <span class="fw-bold display-6 text-danger mb-0">$ {{ saldo_cuenta|floatformat:"0"|intcomma }}</span>
+                    {% elif saldo_cuenta < 0 %}
+                        <span class="d-block text-muted small text-uppercase fw-bold">A favor</span>
+                        <span class="fw-bold display-6 text-success mb-0">$ {{ saldo_cuenta|floatformat:"0"|cut:"-"|intcomma }}</span>
+                    {% else %}
+                        <span class="d-block text-muted small text-uppercase fw-bold">Al día</span>
+                        <span class="fw-bold display-6 text-muted mb-0">$ 0</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-3 text-end">
+                <a href="{% url 'registrar_pago_comedor' %}" class="btn btn-success rounded-pill px-4 fw-bold">
+                    <i class="bi bi-cash-coin me-2"></i>Registrar pago
+                </a>
+            </div>
+
+            <!-- Últimos movimientos -->
+            <div class="mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Movimientos</h6>
+                    {% if movimientos %}<a href="{% url 'historial_comedor' %}" class="small text-decoration-none">Ver todo</a>{% endif %}
+                </div>
+                {% if movimientos %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <tbody>
+                            {% for m in movimientos %}
+                            <tr>
+                                <td class="text-muted small" style="white-space:nowrap;">{{ m.fecha|date:"d/m/Y" }}</td>
+                                <td>{{ m.concepto|default:m.get_tipo_display }}</td>
+                                <td class="text-end fw-bold {% if m.monto < 0 %}text-success{% else %}text-danger{% endif %}" style="white-space:nowrap;">
+                                    {% if m.monto < 0 %}−{% else %}+{% endif %} $ {{ m.monto|floatformat:"0"|cut:"-"|intcomma }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">Todavía no hay movimientos en tu cuenta de comedor.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

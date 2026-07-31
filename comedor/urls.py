@@ -14,6 +14,13 @@ urlpatterns = [
     path("editar_precio/<int:pk>/", PrecioUpdateView.as_view(), name="editar_precio"),
     path("importar_precios/", ImportarPreciosView.as_view(), name="importar_precios"),
 
+    path("generar_cargos", GenerarCargosMensualesView.as_view(), name="generar_cargos_mensuales"),
+    path("registrar_pago", RegistrarPagoComedorView.as_view(), name="registrar_pago_comedor"),
+    path("gestion_pagos", GestionPagosComedorView.as_view(), name="gestion_pagos_comedor"),
+    path("avisar_inasistencia/<int:pk>", AvisarInasistenciaView.as_view(), name="avisar_inasistencia"),
+    path("usar_vale_a_favor/<int:pk>", UsarValeAFavorView.as_view(), name="usar_vale_a_favor"),
+    path("historial", HistorialComedorView.as_view(), name="historial_comedor"),
+
     path("comedor_mensual", ComedorMensualView.as_view(), name="comedor_mensual"),
     path("carga_vale_mensual/<int:pk>",CargarValeMensualView.as_view(), name="carga_vale_mensual"),
     path("editar_vale_mensual/<int:pk>",ActualizarValeMensualView.as_view(), name="editar_vale_mensual"),
@@ -24,4 +31,4 @@ urlpatterns = [
     path("cancelar_vale_diario/<int:pk>", CancelarValeDiarioView.as_view(), name="cancelar_vale_diario"),
     path("historial_vale_diario/<int:pk>", HistorialValesDiariosView.as_view(), name="historial_vales_diarios"),
     path("importar_vales_diarios", ImportarValesDiariosView.as_view(), name="importar_vales_diarios"),
-]
+]
