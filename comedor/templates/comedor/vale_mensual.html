@@ -9,8 +9,8 @@
 <div class="container my-5">
 
     <div class="mb-4 text-center text-md-start">
-        <a href="{% url 'ver_cliente' cliente.pk %}" class="text-decoration-none text-muted fw-bold">
-            <i class="bi bi-arrow-left"></i> Volver al perfil del cliente
+        <a href="{{ volver_url }}" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left"></i> Volver a Comedor
         </a>
     </div>
 
@@ -155,7 +155,7 @@
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{% url 'ver_cliente' cliente.pk %}" class="btn btn-light rounded-pill px-4 fw-bold text-muted border shadow-sm">
+                            <a href="{{ volver_url }}" class="btn btn-light rounded-pill px-4 fw-bold text-muted border shadow-sm">
                                 Cancelar
                             </a>
                             <button type="submit" class="btn btn-primary rounded-pill px-5 fw-bold shadow-sm">
@@ -170,4 +170,4 @@
     </div>
 </div>
 
-{% endblock %}
+{% endblock %}

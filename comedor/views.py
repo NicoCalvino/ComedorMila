@@ -198,6 +198,7 @@ class CargarValeMensualView(LoginRequiredMixin, UserPassesTestMixin, CreateView)
         context = super().get_context_data(**kwargs)
         cliente = get_object_or_404(Cliente, pk=self.kwargs['pk'])
         context['cliente'] = cliente
+        context['volver_url'] = _destino_comedor(self.request.user)
         
         context['precios_escuela_uno'] = Precio.objects.filter(
             nivel="PRIMARIA/SECUNDARIA",
@@ -267,6 +268,7 @@ class ActualizarValeMensualView(LoginRequiredMixin, UserPassesTestMixin, UpdateV
         # cliente del propio plan para no cargar (ni filtrar) datos de otro cliente.
         cliente = self.object.cliente
         context['cliente'] = cliente
+        context['volver_url'] = _destino_comedor(self.request.user)
 
         context['precios_escuela_uno'] = Precio.objects.filter(
             nivel="PRIMARIA/SECUNDARIA",
@@ -431,6 +433,7 @@ class CargarValeDiarioView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         context = super().get_context_data(**kwargs)
         cliente = get_object_or_404(Cliente, pk=self.kwargs['pk'])
         context['cliente'] = cliente
+        context['volver_url'] = _destino_comedor(self.request.user)
         context['fecha_minima'] = date.today().strftime('%Y-%m-%d')
 
         pj = Precio.objects.filter(
@@ -451,12 +454,31 @@ class CargarValeDiarioView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     
     def form_valid(self, form):
         cliente = get_object_or_404(Cliente, pk=self.kwargs['pk'])
-        
+
         form.instance.cliente = cliente
         form.instance.usuario = self.request.user # O ajustalo según cómo se llame tu relación de perfil
-        
-        return super().form_valid(form)
-    
+
+        response = super().form_valid(form)  # guarda el vale (dispara el cargo del día)
+
+        # Si el padre adjuntó un comprobante al cargar el vale, además lo
+        # registramos como un pago pendiente de aprobación, por el valor del día.
+        if self.request.FILES.get('comprobante'):
+            from comedor.cargos import precio_vale_diario
+            monto = precio_vale_diario(cliente)
+            if monto > 0:
+                SolicitudPagoComedor.objects.create(
+                    usuario=self.request.user,
+                    monto=monto,
+                    comprobante=self.object.comprobante,
+                    estado=SolicitudPagoComedor.PENDIENTE,
+                )
+                messages.info(
+                    self.request,
+                    "Registramos tu comprobante como un pago pendiente de aprobación."
+                )
+
+        return response
+
     def get_success_url(self):
         return _destino_comedor(self.request.user)
     
