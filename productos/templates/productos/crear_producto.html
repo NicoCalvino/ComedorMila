@@ -21,16 +21,32 @@
     </div>
 
     <!-- BLOQUE DE MENSAJES (Nuevo código) -->
-
+    {% if messages %}
+    <div class="row justify-content-center mb-3">
+        <div class="col-lg-8">
+            {% for message in messages %}
+                <div class="alert alert-{% if message.level_tag == 'error' %}danger{% else %}{{ message.level_tag }}{% endif %} rounded-3 mb-2">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
     <!-- FIN BLOQUE DE MENSAJES -->
 
     <!-- Card del Formulario -->
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 p-4" style="background-color: #fff;">
-                
+
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger rounded-3">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
 
                     <!-- Fila 1: Nombre del Producto -->
                     <div class="mb-4">
@@ -67,6 +83,9 @@
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-currency-dollar"></i></span>
                                 {{ form.precio }}
                             </div>
+                            {% if form.precio.errors %}
+                                <div class="text-danger small mt-1">{{ form.precio.errors }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-4">
                             <label for="{{ form.stock.id_for_label }}" class="form-label fw-bold text-dark">Stock Inicial</label>
@@ -74,6 +93,9 @@
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-box-seam"></i></span>
                                 {{ form.stock }}
                             </div>
+                            {% if form.stock.errors %}
+                                <div class="text-danger small mt-1">{{ form.stock.errors }}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-4">
                             <label for="{{ form.codigo_de_barras.id_for_label }}" class="form-label fw-bold text-dark">Código de Barras</label>
@@ -81,6 +103,9 @@
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-upc-scan"></i></span>
                                 {{ form.codigo_de_barras }}
                             </div>
+                            {% if form.codigo_de_barras.errors %}
+                                <div class="text-danger small mt-1">{{ form.codigo_de_barras.errors }}</div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -110,7 +135,10 @@
                             {{ form.picture }}
                         </div>
                         <!-- Mensaje de ayuda opcional -->
-                        <div class="text-muted small mt-2">Haz clic en la cámara para subir una foto</div>
+                        <div class="text-muted small mt-2">Haz clic en la cámara para subir una foto (opcional)</div>
+                        {% if form.picture.errors %}
+                            <div class="text-danger small mt-1">{{ form.picture.errors }}</div>
+                        {% endif %}
                     </div>
 
                     <hr class="my-4">

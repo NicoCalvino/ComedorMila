@@ -189,13 +189,16 @@
                     </li>
                 {% elif user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'lista_solicitudes' %}active{% endif %}" href="{% url 'lista_solicitudes' %}">Cargar Saldo</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'calendar_view' %}active{% endif %}" href="{% url 'calendar_view' %}">Menú Comedor</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'calendar_view' %}active{% endif %}" href="{% url 'calendar_view' %}">Menú</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'registrar_pago_comedor' %}active{% endif %}" href="{% url 'registrar_pago_comedor' %}">Pago Comedor</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'lista_productos' %}active{% endif %}" href="{% url 'lista_productos' %}">Productos</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'lista_solicitudes' %}active{% endif %}" href="{% url 'lista_solicitudes' %}">Pago Kiosco</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'lista_productos' %}active{% endif %}" href="{% url 'lista_productos' %}">Precios Kiosco</a>
                     </li>
                 {% endif %}
             </ul>

@@ -34,9 +34,9 @@
 
                         <!-- Icono Grande (Placeholder de imagen) -->
                         <div class="mb-4">
-                                <img src="{{ producto.picture.url }}" 
-                                    alt="{{ producto.nombre }}" 
-                                    class="img-fluid rounded-4 shadow-sm" 
+                                <img src="{% if producto.picture %}{{ producto.picture.url }}{% else %}/media/default/producto.jpg{% endif %}"
+                                    alt="{{ producto.nombre }}"
+                                    class="img-fluid rounded-4 shadow-sm"
                                     style="max-height: 300px; object-fit: contain;">
                         </div>
 

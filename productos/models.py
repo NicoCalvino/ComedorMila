@@ -20,7 +20,8 @@ class Producto(models.Model):
     )
     picture = models.ImageField(
         upload_to=picture_upload_to,
-        verbose_name="Picture"
+        verbose_name="Picture",
+        blank=True
     )
     nombre = models.CharField(max_length=50, null=False)
     marca = models.CharField(max_length=30, null=False)
