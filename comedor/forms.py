@@ -1,6 +1,42 @@
 from django import forms
 from comedor.models import *
+from users.models import Perfil
 from datetime import date
+from decimal import Decimal
+
+
+class RegistrarPagoAdminComedorForm(forms.Form):
+    """Admin: carga un pago de comedor a nombre de una familia (por ejemplo
+    cuando mandan el comprobante por WhatsApp). El comprobante es opcional."""
+
+    familia = forms.ModelChoiceField(
+        queryset=Perfil.objects.filter(
+            clientes__isnull=False, is_superuser=False,
+        ).distinct().order_by('last_name', 'first_name'),
+        label="Familia",
+        empty_label="Elegí una familia…",
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'select-familia'}),
+    )
+    monto = forms.DecimalField(
+        max_digits=12, decimal_places=2,
+        label="Monto pagado",
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control', 'min': '1', 'step': '0.01',
+            'placeholder': 'Monto pagado',
+        }),
+    )
+    comprobante = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        label="Comprobante (opcional)",
+        help_text="Si te mandaron la foto del pago por WhatsApp, subila acá.",
+    )
+
+    def clean_monto(self):
+        monto = self.cleaned_data.get('monto')
+        if monto is None or monto <= 0:
+            raise forms.ValidationError("El monto debe ser mayor a cero.")
+        return monto
 
 
 class SolicitudPagoComedorForm(forms.ModelForm):

@@ -983,6 +983,55 @@ class RegistrarPagoComedorView(LoginRequiredMixin, CreateView):
         return reverse_lazy('comedor_familia')
 
 
+class RegistrarPagoAdminComedorView(SuperUserRequiredMixin, View):
+    """Admin: carga un pago de comedor a nombre de una familia (por ejemplo
+    cuando mandan el comprobante por WhatsApp). Acredita el saldo al instante,
+    sin pasar por el circuito de aprobación, porque lo registra el administrador."""
+    template_name = 'comedor/registrar_pago_admin.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {
+            'form': RegistrarPagoAdminComedorForm(),
+        })
+
+    def post(self, request):
+        form = RegistrarPagoAdminComedorForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form})
+
+        familia = form.cleaned_data['familia']
+        monto = form.cleaned_data['monto']
+        comprobante = form.cleaned_data.get('comprobante')
+
+        # Reutiliza el circuito ya probado: se crea la solicitud y se aprueba en
+        # el acto (registrado_por = admin). Queda trazable en "Últimos resueltos".
+        sol = SolicitudPagoComedor.objects.create(
+            usuario=familia,
+            monto=monto,
+            comprobante=comprobante if comprobante else None,
+            estado=SolicitudPagoComedor.PENDIENTE,
+        )
+        sol.aprobar(request.user)
+
+        cuenta = CuentaComedor.para(familia)
+        if cuenta.saldo > 0:
+            estado_saldo = f"debe $ {cuenta.saldo:.0f}"
+        elif cuenta.saldo < 0:
+            estado_saldo = f"tiene a favor $ {abs(cuenta.saldo):.0f}"
+        else:
+            estado_saldo = "está al día"
+        messages.success(
+            request,
+            f"Pago de $ {monto:.0f} cargado a nombre de {familia}. "
+            f"Ahora la cuenta {estado_saldo}.",
+        )
+        return redirect('gestion_pagos_comedor')
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')
+
+
 class GestionPagosComedorView(SuperUserRequiredMixin, View):
     """Admin: lista los pagos pendientes y permite aprobar o rechazar."""
     template_name = 'comedor/gestion_pagos.html'

@@ -1,0 +1,97 @@
+{% extends 'main/index.html' %}
+{% block titulo %}<title>Cargar un pago - Comedor</title>{% endblock %}
+
+{% block Bienvenida %}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+    <div class="mb-4">
+        <a href="{% url 'gestion_pagos_comedor' %}" class="text-decoration-none text-muted fw-bold">
+            <i class="bi bi-arrow-left"></i> Volver a pagos de comedor
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-md-5">
+
+                    <h2 class="fw-bold mb-1">
+                        <i class="bi bi-cash-coin text-success me-2"></i>Cargar un pago
+                    </h2>
+                    <p class="text-muted mb-4">
+                        Registrá vos un pago a nombre de una familia (por ejemplo, cuando
+                        mandan el comprobante por WhatsApp). El saldo se acredita al instante.
+                    </p>
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.familia.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.familia.label }}
+                            </label>
+                            <input type="text" id="filtro-familia" class="form-control mb-2"
+                                   placeholder="Escribí para buscar una familia…" autocomplete="off">
+                            {{ form.familia }}
+                            {% if form.familia.errors %}
+                            <div class="text-danger small mt-1">{{ form.familia.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.monto.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.monto.label }}
+                            </label>
+                            {{ form.monto }}
+                            {% if form.monto.errors %}
+                            <div class="text-danger small mt-1">{{ form.monto.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.comprobante.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.comprobante.label }}
+                            </label>
+                            {{ form.comprobante }}
+                            <div class="form-text">{{ form.comprobante.help_text }}</div>
+                            {% if form.comprobante.errors %}
+                            <div class="text-danger small mt-1">{{ form.comprobante.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg rounded-pill">
+                                <i class="bi bi-check-lg me-1"></i>Registrar pago
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Filtro simple del listado de familias: escribí y se ocultan las que no coinciden.
+    (function () {
+        var filtro = document.getElementById('filtro-familia');
+        var select = document.getElementById('select-familia');
+        if (!filtro || !select) return;
+        var opciones = Array.prototype.slice.call(select.options);
+        filtro.addEventListener('input', function () {
+            var q = filtro.value.trim().toLowerCase();
+            opciones.forEach(function (op) {
+                if (!op.value) return; // deja siempre el placeholder
+                op.hidden = q !== '' && op.text.toLowerCase().indexOf(q) === -1;
+            });
+        });
+    })();
+</script>
+{% endblock %}

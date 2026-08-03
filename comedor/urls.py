@@ -18,6 +18,7 @@ urlpatterns = [
 
     path("generar_cargos", GenerarCargosMensualesView.as_view(), name="generar_cargos_mensuales"),
     path("registrar_pago", RegistrarPagoComedorView.as_view(), name="registrar_pago_comedor"),
+    path("registrar_pago_admin", RegistrarPagoAdminComedorView.as_view(), name="registrar_pago_admin_comedor"),
     path("gestion_pagos", GestionPagosComedorView.as_view(), name="gestion_pagos_comedor"),
     path("avisar_inasistencias/<int:pk>", AvisarInasistenciasView.as_view(), name="avisar_inasistencias"),
     path("usar_vale_a_favor/<int:pk>", UsarValeAFavorView.as_view(), name="usar_vale_a_favor"),
