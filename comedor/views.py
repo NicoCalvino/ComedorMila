@@ -5,8 +5,9 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views import View
 from django.views.generic import ListView, DeleteView, DetailView, UpdateView, CreateView, TemplateView
-from django.db.models import Q, F, IntegerField
-from django.db.models.functions import Cast
+from django.db.models import Q, F, IntegerField, Value, DecimalField, Sum
+from django.db.models.functions import Cast, Coalesce
+from decimal import Decimal
 import pandas as pd
 from comedor.models import *
 from comedor.forms import *
@@ -990,8 +991,12 @@ class RegistrarPagoAdminComedorView(SuperUserRequiredMixin, View):
     template_name = 'comedor/registrar_pago_admin.html'
 
     def get(self, request):
+        initial = {}
+        fam_id = request.GET.get('familia')
+        if fam_id:
+            initial['familia'] = fam_id  # prefill al venir desde el estado de cuenta
         return render(request, self.template_name, {
-            'form': RegistrarPagoAdminComedorForm(),
+            'form': RegistrarPagoAdminComedorForm(initial=initial),
         })
 
     def post(self, request):
@@ -1166,6 +1171,84 @@ class HistorialComedorView(LoginRequiredMixin, ListView):
         cuenta = self._cuenta()
         context['saldo'] = cuenta.saldo if cuenta else 0
         return context
+
+
+class EstadoCuentaComedorView(SuperUserRequiredMixin, ListView):
+    """Admin: estado de cuenta de comedor de todas las familias, con el saldo
+    actual de cada una. Ordenado por deuda (las que más deben, primero).
+    Se puede buscar por nombre/email y filtrar por estado."""
+    template_name = 'comedor/estado_cuentas.html'
+    context_object_name = 'familias'
+    paginate_by = 40
+
+    def _base_qs(self):
+        qs = (Perfil.objects
+              .filter(clientes__isnull=False, is_superuser=False)
+              .distinct()
+              .annotate(saldo_comedor=Coalesce(
+                  'cuenta_comedor__saldo',
+                  Value(Decimal('0.00')),
+                  output_field=DecimalField(max_digits=12, decimal_places=2),
+              )))
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q)
+            )
+        estado = self.request.GET.get('estado', 'todos')
+        if estado == 'deben':
+            qs = qs.filter(saldo_comedor__gt=0)
+        elif estado == 'afavor':
+            qs = qs.filter(saldo_comedor__lt=0)
+        elif estado == 'aldia':
+            qs = qs.filter(saldo_comedor=0)
+        return qs
+
+    def get_queryset(self):
+        return self._base_qs().order_by('-saldo_comedor', 'last_name', 'first_name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        todas = list(self._base_qs())
+        context['total_deuda'] = sum((f.saldo_comedor for f in todas if f.saldo_comedor > 0), Decimal('0.00'))
+        context['total_favor'] = sum((-f.saldo_comedor for f in todas if f.saldo_comedor < 0), Decimal('0.00'))
+        context['cantidad'] = len(todas)
+        context['q'] = self.request.GET.get('q', '')
+        context['estado'] = self.request.GET.get('estado', 'todos')
+        return context
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')
+
+
+class EstadoCuentaComedorDetalleView(SuperUserRequiredMixin, ListView):
+    """Admin: historial completo de la cuenta de comedor de una familia."""
+    template_name = 'comedor/estado_cuenta_detalle.html'
+    context_object_name = 'movimientos'
+    paginate_by = 30
+
+    def _familia(self):
+        return get_object_or_404(Perfil, pk=self.kwargs['pk'])
+
+    def get_queryset(self):
+        cuenta = CuentaComedor.objects.filter(usuario=self._familia()).first()
+        if not cuenta:
+            return MovimientoComedor.objects.none()
+        return cuenta.movimientos.all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        familia = self._familia()
+        cuenta = CuentaComedor.objects.filter(usuario=familia).first()
+        context['familia'] = familia
+        context['saldo'] = cuenta.saldo if cuenta else Decimal('0.00')
+        context['hijos'] = familia.clientes.all()
+        return context
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')
 
 
 # ---------------------------------------------------------------------------
