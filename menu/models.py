@@ -104,3 +104,39 @@ class Feriado(models.Model):
 
     def __str__(self):
         return f"{self.fecha} {self.nombre}"
+
+
+class MenuJardin(models.Model):
+    """Menú fijo semanal para el nivel JARDIN.
+
+    A diferencia del Menu de primaria/secundaria (que se arma por fecha),
+    el menú de jardín es fijo: una sola fila por día de la semana
+    (Lunes a Viernes) que se repite todas las semanas. Los platos se cargan
+    como texto libre (no dependen del catálogo de Platos).
+    """
+    DIAS = (
+        ("LUNES", "Lunes"),
+        ("MARTES", "Martes"),
+        ("MIERCOLES", "Miercoles"),
+        ("JUEVES", "Jueves"),
+        ("VIERNES", "Viernes"),
+    )
+    # Orden de los días para poder ordenarlos de Lunes a Viernes.
+    ORDEN_DIAS = {"LUNES": 0, "MARTES": 1, "MIERCOLES": 2, "JUEVES": 3, "VIERNES": 4}
+
+    dia = models.CharField(choices=DIAS, max_length=9, unique=True)
+    plato_principal = models.CharField(max_length=200, blank=True, default="")
+    postre = models.CharField(max_length=200, blank=True, default="")
+    orden = models.PositiveSmallIntegerField(default=0, editable=False)
+
+    class Meta:
+        ordering = ["orden"]
+        verbose_name = "Menú de jardín"
+        verbose_name_plural = "Menú de jardín"
+
+    def save(self, *args, **kwargs):
+        self.orden = self.ORDEN_DIAS.get(self.dia, 0)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Menú Jardín - {self.get_dia_display()}"

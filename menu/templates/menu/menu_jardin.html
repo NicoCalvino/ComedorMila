@@ -1,0 +1,125 @@
+{% extends 'main/index.html' %}
+
+{% block Bienvenida %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="h4 text-muted mb-0"><i class="bi bi-flower1 me-2"></i>Menú Jardín</h2>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+
+            <div class="card card-custom shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <div class="text-center mb-4">
+                        <div class="icon-box" style="font-size: 2.5rem; color: #0d9488;">
+                            <i class="bi bi-flower1"></i>
+                        </div>
+                        <h2 class="fw-bold">Menú fijo de Jardín</h2>
+                        <p class="text-muted small text-uppercase" style="letter-spacing: 1px;">
+                            Se repite todas las semanas para el nivel inicial
+                        </p>
+                    </div>
+
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-success shadow-sm" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>{{ message }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% for dia in dias %}
+                        <div class="card border-0 shadow-sm mb-3 dia-card">
+                            <div class="card-body">
+                                <h5 class="fw-bold text-uppercase mb-3" style="color: #0d9488; letter-spacing: 1px;">
+                                    <i class="bi bi-calendar-day me-2"></i>{{ dia.get_dia_display }}
+                                </h5>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-uppercase">
+                                            <i class="bi bi-egg-fried me-2"></i>Plato Principal
+                                        </label>
+                                        <input type="text" name="principal_{{ dia.dia }}"
+                                               class="form-control" maxlength="200"
+                                               value="{{ dia.plato_principal }}"
+                                               placeholder="Ej. Fideos con tuco">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold small text-uppercase">
+                                            <i class="bi bi-ice-cream me-2"></i>Postre
+                                        </label>
+                                        <input type="text" name="postre_{{ dia.dia }}"
+                                               class="form-control" maxlength="200"
+                                               value="{{ dia.postre }}"
+                                               placeholder="Ej. Fruta de estación">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-jardin btn-lg text-white shadow-sm border-0">
+                                <i class="bi bi-check-circle me-2"></i>Guardar Menú Jardín
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'home_menu' %}" class="btn btn-link text-muted text-decoration-none small">
+                    <i class="bi bi-arrow-left me-2"></i>Volver al listado
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-custom {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+    }
+    .icon-box {
+        background: #e6f5f3;
+        width: 70px;
+        height: 70px;
+        line-height: 70px;
+        border-radius: 50%;
+        margin: 0 auto 15px;
+    }
+    .dia-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    .btn-jardin {
+        background-color: #0d9488;
+        transition: all 0.3s ease;
+    }
+    .btn-jardin:hover {
+        background-color: #0b7c72;
+        color: white;
+        transform: scale(1.01);
+    }
+    .form-control:focus {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 0.25rem rgba(13, 148, 136, 0.25);
+    }
+    .form-label {
+        color: #6c757d;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+</style>
+{% endblock %}

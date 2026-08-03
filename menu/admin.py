@@ -1,3 +1,4 @@
 from django.contrib import admin
+from menu.models import MenuJardin
 
-# Register your models here.
+admin.site.register(MenuJardin)

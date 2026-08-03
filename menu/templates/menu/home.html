@@ -17,6 +17,9 @@
             <a href="{%url 'crear_menu' %}" class="btn btn-generate px-4 shadow-sm border-0 text-white">
                 <i class="bi bi-calendar-plus me-2"></i>Crear Menú
             </a>
+            <a href="{% url 'menu_jardin' %}" class="btn btn-jardin px-4 shadow-sm border-0 text-white">
+                <i class="bi bi-flower1 me-2"></i>Menú Jardín
+            </a>
             <a href="#" class="btn btn-excel px-4 shadow-sm border-0 text-white">
                 <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
             </a>
@@ -190,6 +193,16 @@
     }
     .btn-excel:hover {
         background-color: #155231; /* Verde más oscuro */
+        color: white;
+    }
+
+    /* Estilo para el botón de Menú Jardín (Turquesa) */
+    .btn-jardin {
+        background-color: #0d9488;
+        transition: all 0.3s ease;
+    }
+    .btn-jardin:hover {
+        background-color: #0b7c72; /* Turquesa más oscuro */
         color: white;
     }
 

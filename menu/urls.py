@@ -7,6 +7,7 @@ urlpatterns = [
     path("crear_menu", MenuCreateView.as_view(), name="crear_menu"),
     path("editar_menu/<int:pk>", MenuUpdateView.as_view(), name="editar_menu"),
     path("generacion_menu", MenuFormView.as_view(), name="generacion_menu"),
+    path("menu_jardin", MenuJardinView.as_view(), name="menu_jardin"),
 
     path("lista_platos", PlatoListView.as_view(), name="lista_platos"),
     path("crear_plato", PlatoCreateView.as_view(), name="crear_plato"),

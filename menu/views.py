@@ -1,4 +1,4 @@
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
@@ -11,6 +11,7 @@ from django.core.files import File
 from menu.models import *
 from menu.forms import *
 from menu.services import generar_menu_escolar
+from escuela.models import Cliente
 
 class SuperUserRequiredMixin(UserPassesTestMixin):
     def test_func(self):
@@ -179,8 +180,33 @@ class MenuCalendarView(LoginRequiredMixin, ListView):
         
         context['semanas'] = resultado
         context['hoy'] = datetime.today().date()
+
+        # Bloque extra de Menú Jardín: solo si el padre tiene al menos un hijo
+        # cuyo curso es de nivel JARDIN. Se muestra después de las 4 semanas.
+        tiene_jardin = Cliente.objects.filter(
+            usuario=self.request.user, curso__nivel="JARDIN"
+        ).exists()
+
+        menu_jardin = None
+        if tiene_jardin:
+            existentes = {m.dia: m for m in MenuJardin.objects.all()}
+            dias_orden = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES"]
+            jardin_dias = []
+            for d in dias_orden:
+                registro = existentes.get(d)
+                jardin_dias.append({
+                    "dia": d,
+                    "plato_principal": registro.plato_principal if registro else "",
+                    "postre": registro.postre if registro else "",
+                })
+            # Solo mostramos el bloque si hay al menos un dato cargado.
+            if any(j["plato_principal"] or j["postre"] for j in jardin_dias):
+                menu_jardin = jardin_dias
+
+        context['tiene_jardin'] = tiene_jardin
+        context['menu_jardin'] = menu_jardin
         return context
-    
+
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
@@ -326,7 +352,37 @@ class ImportarMenuView(SuperUserRequiredMixin, View):
     
     def get(self, request, *args, **kwargs):
         return redirect('home_menu')
-    
+
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
+
+
+class MenuJardinView(SuperUserRequiredMixin, View):
+    """Configuración del menú fijo de jardín: edita los 5 días de la semana
+    en una sola pantalla. Asegura que exista una fila por día (get_or_create)."""
+    template_name = "menu/menu_jardin.html"
+    DIAS = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES"]
+
+    def _filas(self):
+        filas = []
+        for d in self.DIAS:
+            obj, _ = MenuJardin.objects.get_or_create(dia=d)
+            filas.append(obj)
+        return filas
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {"dias": self._filas()})
+
+    def post(self, request, *args, **kwargs):
+        for d in self.DIAS:
+            obj, _ = MenuJardin.objects.get_or_create(dia=d)
+            obj.plato_principal = request.POST.get(f"principal_{d}", "").strip()[:200]
+            obj.postre = request.POST.get(f"postre_{d}", "").strip()[:200]
+            obj.save()
+        messages.success(request, "Menú de jardín actualizado correctamente.")
+        return redirect("menu_jardin")
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')

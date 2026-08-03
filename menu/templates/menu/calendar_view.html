@@ -77,6 +77,50 @@
         </table>
     </div>
 
+    {% if menu_jardin %}
+    <div class="mt-5">
+        <h2 class="text-center mb-1 text-muted"><i class="bi bi-flower1 me-2"></i>Menú Jardín</h2>
+        <p class="text-center text-muted small mb-4">Menú fijo semanal para el nivel inicial</p>
+
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-bordered align-middle mb-0 bg-white">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th style="width: 20%;">LUNES</th>
+                        <th style="width: 20%;">MARTES</th>
+                        <th style="width: 20%;">MIÉRCOLES</th>
+                        <th style="width: 20%;">JUEVES</th>
+                        <th style="width: 20%;">VIERNES</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {% for dia in menu_jardin %}
+                        <td class="p-3" style="vertical-align: top;">
+                            <div class="menu-content">
+                                {% if dia.plato_principal %}
+                                    <p class="mb-1"><strong>Plato Principal:</strong><br>
+                                        <span class="text-muted">{{ dia.plato_principal }}</span></p>
+                                {% endif %}
+                                {% if dia.postre %}
+                                    <p class="mb-1"><strong>Postre:</strong><br>
+                                        <span class="text-muted">{{ dia.postre }}</span></p>
+                                {% endif %}
+                                {% if not dia.plato_principal and not dia.postre %}
+                                    <div class="text-center py-4">
+                                        <small class="text-muted italic">Sin menú</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="text-center mt-5">
         <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
             <i class="bi bi-arrow-left me-2"></i>Volver a Comedor
