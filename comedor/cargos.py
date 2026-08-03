@@ -1,18 +1,15 @@
-"""Generación de cargos mensuales de comedor (con prorrateo por días de comedor).
+"""Generación de cargos mensuales de comedor.
 
-Reglas acordadas:
+Reglas:
 - El cargo mensual de una familia = suma del costo de cada hijo (facturación con
-  descuento familiar, ver comedor/facturacion.py), prorrateado por hijo.
-- Prorrateo: si el plan del hijo tiene `vigente_desde` dentro del mes, se cobra
-  solo la fracción de DÍAS DE COMEDOR del plan desde esa fecha hasta fin de mes.
-  Se IGNORAN los feriados (v1). Si `vigente_desde` es null o anterior al mes, se
-  cobra el mes completo (factor 1).
+  descuento familiar, ver comedor/facturacion.py). SIEMPRE se cobra el mes
+  completo (no se prorratea). Si hace falta ajustar un cargo (por un alta a mitad
+  de mes, una bonificación, etc.), el admin edita el movimiento en el panel y el
+  saldo se recalcula solo.
 - Idempotente: no se cobra dos veces el mismo período (UniqueConstraint +
   chequeo previo).
 """
 
-from calendar import monthrange
-from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.utils import timezone
@@ -29,52 +26,14 @@ def _dias_semana_del_plan(vale):
     return {i for i, attr in enumerate(_DIAS_PLAN) if getattr(vale, attr)}
 
 
-def dias_comedor_en_mes(vale, year, month, desde=None):
-    """Cantidad de fechas del mes cuyo día de semana está en el plan.
-
-    Si `desde` se pasa, cuenta solo las fechas >= desde. Ignora feriados (v1).
-    """
-    dias = _dias_semana_del_plan(vale)
-    if not dias:
-        return 0
-    total = 0
-    for d in range(1, monthrange(year, month)[1] + 1):
-        f = date(year, month, d)
-        if f.weekday() in dias and (desde is None or f >= desde):
-            total += 1
-    return total
-
-
-def factor_prorrateo(vale, year, month):
-    """Fracción del mes a cobrar (Decimal 0..1) según `vigente_desde`."""
-    vd = vale.vigente_desde
-    primer_dia = date(year, month, 1)
-    if not vd or vd <= primer_dia:
-        return Decimal('1')
-    ultimo_dia = date(year, month, monthrange(year, month)[1])
-    if vd > ultimo_dia:
-        return Decimal('0')  # el plan empieza después de este mes
-    total = dias_comedor_en_mes(vale, year, month)
-    if total == 0:
-        return Decimal('1')  # sin días de comedor: no prorratear (evita 0/0)
-    desde = dias_comedor_en_mes(vale, year, month, desde=vd)
-    return Decimal(desde) / Decimal(total)
-
-
 def cargo_mensual_padre(usuario, year, month):
-    """Devuelve (total, detalle) del cargo mensual prorrateado de una familia."""
+    """Devuelve (total, detalle) del cargo mensual (mes completo) de una familia."""
     fact = facturacion_padre(usuario)
     total = Decimal('0.00')
     detalle = []
     for hijo in fact['hijos']:
-        cliente = hijo['cliente']
-        subtotal = Decimal(hijo['subtotal'] or 0)
-        vale = getattr(cliente, 'vale_mensual', None)
-        factor = factor_prorrateo(vale, year, month) if vale else Decimal('1')
-        monto = (subtotal * factor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        detalle.append({
-            'cliente': cliente, 'subtotal': subtotal, 'factor': factor, 'monto': monto,
-        })
+        monto = Decimal(hijo['subtotal'] or 0)
+        detalle.append({'cliente': hijo['cliente'], 'subtotal': monto, 'monto': monto})
         total += monto
     return total, detalle
 

@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.db import models, transaction
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from users.models import Perfil
@@ -368,3 +368,13 @@ def _vale_diario_actualiza_cuenta(sender, instance, created, **kwargs):
     elif instance.cancelado:
         revertir_cargo_vale_diario(instance)
 
+
+
+@receiver(post_save, sender=MovimientoComedor)
+@receiver(post_delete, sender=MovimientoComedor)
+def _movimiento_actualiza_saldo(sender, instance, **kwargs):
+    """Mantiene el saldo de la cuenta consistente ante cualquier cambio de un
+    movimiento, incluida la edición o el borrado desde el panel de admin."""
+    cuenta_id = instance.cuenta_id
+    if cuenta_id and CuentaComedor.objects.filter(pk=cuenta_id).exists():
+        CuentaComedor.objects.get(pk=cuenta_id).recalcular_saldo()

@@ -15,9 +15,15 @@
 
     <h2 class="fw-bold mb-1"><i class="bi bi-cash-coin text-success me-2"></i>Generar cargos del mes</h2>
     <p class="text-muted mb-4">
-        Crea el cargo mensual de comedor de cada familia con plan activo, prorrateado
-        por los días de comedor si el plan empezó a mitad de mes. Es seguro repetirlo:
-        las familias que ya tienen el cargo del período se omiten.
+        Crea el cargo mensual de comedor (mes completo) de cada familia con plan activo.
+        Es seguro repetirlo: las familias que ya tienen el cargo del período se omiten.
+        Si necesitás ajustar un cargo puntual (un alta a mitad de mes, una bonificación),
+        editalo en el admin (Cuentas de comedor / Movimientos) y el saldo se recalcula solo.
+    </p>
+    <p class="text-muted small mb-4">
+        <i class="bi bi-info-circle me-1"></i>¿Alguien se anotó después de generar el mes?
+        Volvé a apretar “Generar cargos” del mismo mes: se le crea el cargo solo a los nuevos,
+        sin duplicar a los que ya tenían.
     </p>
 
     <div class="card border-0 shadow-sm rounded-4 mb-4">
