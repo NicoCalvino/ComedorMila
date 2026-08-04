@@ -67,11 +67,11 @@ def importar_usuarios_excel(request):
             }
 
             for index, row in df.iterrows():
-                email = str(row.get('email', '')).strip()
+                email = str(row.get('email', '')).strip().lower()
                 password = str(row.get('password', ''))
-                
+
                 try:
-                    if Perfil.objects.filter(email=email).exists():
+                    if Perfil.objects.filter(email__iexact=email).exists():
                         resultados['errores'].append({
                             'fila': index + 2,
                             'identificador': email,
