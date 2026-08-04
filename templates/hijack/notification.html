@@ -1,0 +1,22 @@
+{% load static %}
+
+{% block content %}
+  <link rel="stylesheet" type="text/css" href="{% static 'hijack/hijack.css' %}" media="screen">
+  <div class="djhj" id="djhj">
+    <div class="djhj-notification">
+      <div class="djhj-message">
+        Estás actuando como <em>{{ request.user }}</em>. Todo lo que hagas queda en su cuenta.
+      </div>
+      <form action="{% url 'hijack:release' %}" method="POST" class="djhj-actions">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="djhj-button" onclick="document.getElementById('djhj').style.display = 'none';" type="button">
+          ocultar
+        </button>
+        <button class="djhj-button" type="submit">
+          Volver a Admin
+        </button>
+      </form>
+    </div>
+  </div>
+{% endblock content %}

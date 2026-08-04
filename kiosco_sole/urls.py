@@ -29,6 +29,7 @@ urlpatterns = [
     path('gestion-interna-sole/', admin.site.urls),
     path('admin/', include('admin_honeypot.urls', namespace='admin_honeypot')),
     path("",include("main.urls")),
+    path("hijack/", include("hijack.urls")),
     path("kiosco/",include("kiosco.urls")),
     path("productos/",include("productos.urls")),
     path("users/", include("users.urls")),

@@ -63,6 +63,7 @@ CSRF_FAILURE_VIEW = 'main.views.csrf_failure'
 
 INSTALLED_APPS = [
     'users',
+    'hijack',
     'admin_honeypot',
     'axes',
     'django_otp',
@@ -103,8 +104,18 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
     'django_otp.middleware.OTPMiddleware',
-    'main.middleware.StaffOTPRequiredMiddleware'
+    'main.middleware.StaffOTPRequiredMiddleware',
+    # Suplantación de familias: debe ir al final, después de OTP, para que la
+    # marca `is_hijacked` sobreviva y el banner se inyecte en la respuesta.
+    'hijack.middleware.HijackUserMiddleware',
 ]
+
+# ---------------------------------------------------------------------------
+# Suplantación de usuarios (django-hijack)
+# ---------------------------------------------------------------------------
+# Solo un superusuario puede suplantar, y únicamente a FAMILIAS (usuario común
+# con al menos un alumno). Ver users/hijack_checks.py.
+HIJACK_PERMISSION_CHECK = "users.hijack_checks.solo_familias"
 
 # El sitio no debe poder embeberse en iframes de terceros (anti-clickjacking).
 X_FRAME_OPTIONS = 'DENY'
@@ -231,4 +242,4 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     # Necesario si se corre detrás de un proxy/reverse-proxy con HTTPS
     # (como PythonAnywhere). Django reconoce así que la conexión es segura.
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
