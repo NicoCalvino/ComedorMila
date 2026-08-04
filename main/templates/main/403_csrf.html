@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesión expirada - Comedor Mila</title>
+    <style>
+        :root { --verde: #198754; --verde-osc: #146c43; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f6f8f7;
+            color: #212529;
+        }
+        .card {
+            background: #fff;
+            max-width: 440px;
+            width: 100%;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,.08);
+            overflow: hidden;
+            text-align: center;
+        }
+        .card-top {
+            background: var(--verde);
+            color: #fff;
+            padding: 1.75rem 1.5rem 1.5rem;
+        }
+        .card-top .icono { font-size: 2.5rem; line-height: 1; }
+        .card-top h1 { font-size: 1.35rem; margin: .6rem 0 0; font-weight: 700; }
+        .card-body { padding: 1.5rem 1.5rem 1.75rem; }
+        .card-body p { font-size: 1rem; line-height: 1.55; color: #495057; margin: 0 0 1rem; }
+        .card-body p.chico { font-size: .9rem; color: #6c757d; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: .85rem 1rem;
+            border: none;
+            border-radius: 2rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            margin-top: .75rem;
+        }
+        .btn-verde { background: var(--verde); color: #fff; }
+        .btn-verde:active { background: var(--verde-osc); }
+        .btn-gris { background: transparent; color: #6c757d; border: 1px solid #dee2e6; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-top">
+            <div class="icono">&#128260;</div>
+            <h1>Tu sesión expiró</h1>
+        </div>
+        <div class="card-body">
+            <p>Por seguridad, la sesión se cerró sola y no pudimos completar el envío.
+               No te preocupes: <strong>no se perdió ningún dato</strong>, solo hay que volver a intentarlo.</p>
+            <p class="chico">Si usás la app desde el ícono de la pantalla de inicio y esto te pasa seguido,
+               te conviene eliminar el ícono, abrir el sitio en el navegador, iniciar sesión de nuevo
+               y recién ahí volver a agregarlo.</p>
+            <button class="btn btn-verde" onclick="location.reload(true)">Recargar y volver a intentar</button>
+            <a class="btn btn-gris" href="/">Ir al inicio</a>
+        </div>
+    </div>
+</body>
+</html>

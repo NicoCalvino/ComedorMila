@@ -44,6 +44,21 @@ CSRF_TRUSTED_ORIGINS = [
     'https://www.comedormila.com.ar',
     'https://comedormila.com.ar' # Por si entran sin el www
 ]
+
+# ---------------------------------------------------------------------------
+# Robustez de sesión / CSRF para la app instalada en el celular (PWA)
+# ---------------------------------------------------------------------------
+# En iPhone, cuando la web está agregada a la pantalla de inicio ("standalone"),
+# iOS borra las cookies con más facilidad tras varios días sin abrirla. Eso hace
+# que al enviar un formulario ya no viaje la cookie de sesión/CSRF y salte un 403.
+#
+# Renovar el vencimiento de la sesión en cada visita mantiene al usuario logueado
+# mucho más tiempo, reduciendo la frecuencia de estos errores.
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Cuando la verificación CSRF falla igualmente, mostramos una página amable
+# (en vez del cartel técnico de Django) que invita a recargar y volver a entrar.
+CSRF_FAILURE_VIEW = 'main.views.csrf_failure'
 # Application definition
 
 INSTALLED_APPS = [

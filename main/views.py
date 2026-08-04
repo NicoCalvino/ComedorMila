@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import render
 from django.shortcuts import render, redirect, get_object_or_404
 from django_otp import login as otp_login
@@ -8,6 +9,26 @@ from kiosco.models import *
 from comedor.models import CuentaComedor
 from comedor.facturacion import facturacion_padre
 from comedor.inasistencias import tiene_plan
+
+logger = logging.getLogger(__name__)
+
+
+def csrf_failure(request, reason=""):
+    """Página amable cuando falla la verificación CSRF.
+
+    Reemplaza el cartel técnico por defecto de Django. Además deja registrado en
+    el log el motivo exacto que detectó Django (cookie CSRF ausente, token que no
+    coincide, referer, etc.) sin necesidad de prender DEBUG en producción, para
+    poder confirmar la causa si vuelve a pasar (típico en la PWA instalada en iOS).
+    """
+    logger.warning(
+        "CSRF failure | path=%s | motivo=%s | UA=%s",
+        request.path,
+        reason,
+        request.META.get("HTTP_USER_AGENT", ""),
+    )
+    return render(request, "main/403_csrf.html", {"reason": reason}, status=403)
+
 
 # Vistas Básicas
 def home(request):
@@ -96,4 +117,4 @@ def verificacion_otp(request):
         else:
             messages.error(request, "Código inválido o expirado. Intenta de nuevo.")
     
-    return render(request, 'main/otp_custom.html')
+    return render(request, 'main/otp_custom.html')
