@@ -7,6 +7,8 @@ from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.utils import timezone
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from transacciones.models import Transaccion, SolicitudCarga, DetalleCarga
@@ -329,45 +331,69 @@ class SolicitudDeCargaCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         try:
+            # 1) Calculamos primero el total pedido, SIN crear todavía la
+            #    solicitud ni guardar el comprobante. Así, si el total es 0 o
+            #    si es un envío duplicado, no dejamos filas ni archivos huérfanos.
+            tarjetas = Tarjeta.objects.filter(
+                cliente__usuario=self.request.user,
+                habilitada = True
+            ).select_related('cliente')
+
+            montos_por_tarjeta = []
+            monto_total_cargado = Decimal('0')
+
+            for tarjeta in tarjetas:
+                input_name = f"monto_{tarjeta.id}"
+                monto_raw = self.request.POST.get(input_name)
+                if not monto_raw:
+                    continue
+                try:
+                    monto = Decimal(monto_raw)
+                except InvalidOperation:
+                    continue
+                if monto > 0:
+                    montos_por_tarjeta.append((tarjeta, monto))
+                    monto_total_cargado += monto
+
+            if monto_total_cargado == 0:
+                raise ValueError("Debe ingresar un monto para al menos un alumno.")
+
+            # 2) Guardia anti-duplicados: si este mismo usuario ya envió una
+            #    solicitud PENDIENTE por el mismo total hace muy poco, es casi
+            #    seguro un doble envío (doble clic o reintento mientras subía el
+            #    comprobante). No creamos otra; lo mandamos de vuelta con aviso.
+            ventana = timezone.now() - timedelta(seconds=45)
+            duplicado = SolicitudCarga.objects.filter(
+                usuario=self.request.user,
+                monto=monto_total_cargado,
+                estado='PENDIENTE',
+                fecha__gte=ventana,
+            ).exists()
+            if duplicado:
+                messages.info(
+                    self.request,
+                    "Ya recibimos tu solicitud. No hace falta enviarla de nuevo; "
+                    "queda pendiente de aprobación."
+                )
+                return redirect(self.success_url)
+
+            # 3) Alta normal, ahora sí de forma atómica.
             with transaction.atomic():
                 self.object = form.save(commit=False)
                 self.object.usuario = self.request.user
-                self.object.monto = Decimal('0')
-                self.object.save()
-
-                tarjetas = Tarjeta.objects.filter(
-                    cliente__usuario=self.request.user,
-                    habilitada = True
-                ).select_related('cliente')
-
-                monto_total_cargado = Decimal('0')
-
-                for tarjeta in tarjetas:
-                    input_name = f"monto_{tarjeta.id}"
-                    monto_raw = self.request.POST.get(input_name)
-                    if not monto_raw:
-                        continue
-                    try:
-                        monto = Decimal(monto_raw)
-                    except InvalidOperation:
-                        continue
-                    if monto > 0:
-                        DetalleCarga.objects.create(
-                            solicitud=self.object,
-                            tarjeta=tarjeta,
-                            monto=monto
-                        )
-                        monto_total_cargado += monto
-
-                if monto_total_cargado == 0:
-                    raise ValueError("Debe ingresar un monto para al menos un alumno.")
-
                 self.object.monto = monto_total_cargado
                 self.object.save()
 
+                for tarjeta, monto in montos_por_tarjeta:
+                    DetalleCarga.objects.create(
+                        solicitud=self.object,
+                        tarjeta=tarjeta,
+                        monto=monto
+                    )
+
             messages.success(self.request, 'Solicitud enviada correctamente. Esperando aprobación.')
-            return super().form_valid(form)
-        
+            return HttpResponseRedirect(self.get_success_url())
+
         except ValueError as e:
             messages.error(self.request, str(e))
             return self.form_invalid(form)

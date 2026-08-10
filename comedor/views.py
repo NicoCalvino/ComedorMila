@@ -975,6 +975,27 @@ class RegistrarPagoComedorView(LoginRequiredMixin, CreateView):
         return context
 
     def form_valid(self, form):
+        monto = form.cleaned_data.get('monto')
+
+        # Guardia anti-duplicados: si este mismo usuario ya registró un pago
+        # PENDIENTE por el mismo monto hace muy poco, es casi seguro un doble
+        # envío (doble clic o reintento mientras subía el comprobante). No
+        # creamos otra solicitud; lo mandamos de vuelta con un aviso.
+        ventana = timezone.now() - timedelta(seconds=45)
+        duplicado = SolicitudPagoComedor.objects.filter(
+            usuario=self.request.user,
+            monto=monto,
+            estado=SolicitudPagoComedor.PENDIENTE,
+            creado__gte=ventana,
+        ).exists()
+        if duplicado:
+            messages.info(
+                self.request,
+                "Ya recibimos tu pago. No hace falta enviarlo de nuevo; "
+                "queda pendiente de aprobación."
+            )
+            return redirect(self.get_success_url())
+
         form.instance.usuario = self.request.user
         form.instance.estado = SolicitudPagoComedor.PENDIENTE
         messages.success(self.request, "¡Pago registrado! Queda pendiente de aprobación.")
