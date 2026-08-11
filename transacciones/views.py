@@ -17,6 +17,47 @@ from transacciones.forms import *
 from kiosco.models import Tarjeta
 from escuela.models import Cliente
 
+# Límite del DecimalField(max_digits=10, decimal_places=2) que usan los montos:
+# es el mayor valor que la base puede guardar y volver a leer sin romperse.
+# Si se guarda algo más grande, después revienta la lectura con
+# decimal.InvalidOperation (rompía toda la lista de solicitudes).
+MONTO_MAXIMO = Decimal('99999999.99')
+
+
+def parsear_monto_carga(monto_raw):
+    """Convierte el texto crudo de un input de monto en un Decimal válido.
+
+    - Devuelve None si el valor está vacío, no es numérico o no es positivo
+      (el llamador simplemente lo saltea, igual que antes).
+    - Lanza ValueError con un mensaje claro si el monto supera el máximo que
+      admite el campo, para no guardar un valor que después rompa las lecturas.
+    """
+    if not monto_raw:
+        return None
+    try:
+        monto = Decimal(monto_raw)
+    except InvalidOperation:
+        return None
+    # Descarta NaN / Infinito y valores no positivos (comparar NaN rompe,
+    # por eso primero chequeamos is_finite()).
+    if not monto.is_finite() or monto <= 0:
+        return None
+    try:
+        monto = monto.quantize(Decimal('0.01'))
+    except InvalidOperation:
+        # Un número gigante ni siquiera se puede cuantizar: fuera de rango.
+        raise ValueError(
+            "El monto ingresado es demasiado alto. "
+            f"El máximo permitido por alumno es ${MONTO_MAXIMO}."
+        )
+    if monto > MONTO_MAXIMO:
+        raise ValueError(
+            "El monto ingresado es demasiado alto. "
+            f"El máximo permitido por alumno es ${MONTO_MAXIMO}."
+        )
+    return monto
+
+
 class SuperUserRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_superuser
@@ -344,19 +385,20 @@ class SolicitudDeCargaCreateView(LoginRequiredMixin, CreateView):
 
             for tarjeta in tarjetas:
                 input_name = f"monto_{tarjeta.id}"
-                monto_raw = self.request.POST.get(input_name)
-                if not monto_raw:
+                monto = parsear_monto_carga(self.request.POST.get(input_name))
+                if monto is None:
                     continue
-                try:
-                    monto = Decimal(monto_raw)
-                except InvalidOperation:
-                    continue
-                if monto > 0:
-                    montos_por_tarjeta.append((tarjeta, monto))
-                    monto_total_cargado += monto
+                montos_por_tarjeta.append((tarjeta, monto))
+                monto_total_cargado += monto
 
             if monto_total_cargado == 0:
                 raise ValueError("Debe ingresar un monto para al menos un alumno.")
+
+            if monto_total_cargado > MONTO_MAXIMO:
+                raise ValueError(
+                    "El total de la solicitud es demasiado alto. "
+                    f"El máximo permitido es ${MONTO_MAXIMO}."
+                )
 
             # 2) Guardia anti-duplicados: si este mismo usuario ya envió una
             #    solicitud PENDIENTE por el mismo total hace muy poco, es casi
@@ -494,23 +536,24 @@ class SolicitudDeCargaUpdateView(LoginRequiredMixin, UserPassesTestMixin, Update
 
                 for tarjeta in tarjetas:
                     input_name = f"monto_{tarjeta.id}"
-                    monto_raw = self.request.POST.get(input_name)
-                    if not monto_raw:
+                    monto = parsear_monto_carga(self.request.POST.get(input_name))
+                    if monto is None:
                         continue
-                    try:
-                        monto = Decimal(monto_raw)
-                    except InvalidOperation:
-                        continue
-                    if monto > 0:
-                        DetalleCarga.objects.create(
-                            solicitud=self.object,
-                            tarjeta=tarjeta,
-                            monto=monto
-                        )
-                        monto_total_cargado += monto
+                    DetalleCarga.objects.create(
+                        solicitud=self.object,
+                        tarjeta=tarjeta,
+                        monto=monto
+                    )
+                    monto_total_cargado += monto
 
                 if monto_total_cargado == 0:
                     raise ValueError("Debe ingresar un monto para al menos un alumno.")
+
+                if monto_total_cargado > MONTO_MAXIMO:
+                    raise ValueError(
+                        "El total de la solicitud es demasiado alto. "
+                        f"El máximo permitido es ${MONTO_MAXIMO}."
+                    )
 
                 self.object.monto = monto_total_cargado
                 self.object.save()
