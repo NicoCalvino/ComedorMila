@@ -236,6 +236,30 @@
                 </div>
             </div>
 
+            {% if pagos_pendientes %}
+            <div class="alert alert-warning border-0 rounded-4 mt-3 mb-0 d-flex align-items-start gap-2">
+                <i class="bi bi-hourglass-split fs-5 lh-1 mt-1"></i>
+                <div class="flex-grow-1">
+                    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2">
+                        <span class="fw-bold">Pagos pendientes de aprobación</span>
+                        <span class="fw-bold">$ {{ total_pagos_pendientes|floatformat:"0"|intcomma }}</span>
+                    </div>
+                    <p class="small mb-0">
+                        {% if pagos_pendientes|length == 1 %}
+                            Registraste un pago que está en revisión. Cuando se apruebe se va a descontar de tu saldo.
+                        {% else %}
+                            Registraste {{ pagos_pendientes|length }} pagos que están en revisión. Cuando se aprueben se van a descontar de tu saldo.
+                        {% endif %}
+                    </p>
+                    <ul class="list-unstyled small mb-0 mt-1">
+                        {% for p in pagos_pendientes %}
+                        <li>{{ p.creado|date:"d/m/Y" }} &middot; $ {{ p.monto|floatformat:"0"|intcomma }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="mt-3 text-end">
                 <a href="{% url 'registrar_pago_comedor' %}" class="btn btn-success rounded-pill px-4 fw-bold">
                     <i class="bi bi-cash-coin me-2"></i>Registrar pago

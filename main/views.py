@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from django.shortcuts import render
 from django.shortcuts import render, redirect, get_object_or_404
 from django_otp import login as otp_login
@@ -6,7 +7,7 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from kiosco.models import *
-from comedor.models import CuentaComedor
+from comedor.models import CuentaComedor, SolicitudPagoComedor
 from comedor.facturacion import facturacion_padre
 from comedor.inasistencias import tiene_plan
 
@@ -77,11 +78,23 @@ def comedor_familia(request):
     saldo_cuenta = cuenta.saldo if cuenta else 0
     movimientos = list(cuenta.movimientos.all()[:10]) if cuenta else []
 
+    # Pagos que el padre ya informó pero que el admin todavía no aprobó. No
+    # impactan el saldo hasta ser aprobados, así que se muestran aparte para que
+    # no crea que su pago se perdió.
+    pagos_pendientes = list(
+        SolicitudPagoComedor.objects.filter(
+            usuario=request.user, estado=SolicitudPagoComedor.PENDIENTE,
+        )
+    )
+    total_pagos_pendientes = sum((p.monto for p in pagos_pendientes), Decimal("0.00"))
+
     return render(request, "main/comedor_familia.html", {
         'clientes': clientes,
         'saldo_cuenta': saldo_cuenta,
         'costo_estimado': factura['total'],
         'movimientos': movimientos,
+        'pagos_pendientes': pagos_pendientes,
+        'total_pagos_pendientes': total_pagos_pendientes,
     })
 
 @user_passes_test(lambda u: u.is_superuser)
