@@ -210,7 +210,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 # Configuraciones de Axes
-AXES_FAILURE_LIMIT = 5            # Bloquea al 5to intento fallido
+AXES_FAILURE_LIMIT = 1000         # Limite alto: en la practica no bloquea por intentos fallidos
 AXES_COOLOFF_TIME = 1             # El bloqueo dura 1 hora (en horas)
 AXES_USERNAME_FORM_FIELD = 'username'
 AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]  # Bloquea la dupla Usuario+IP (API nueva)
@@ -242,4 +242,4 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     # Necesario si se corre detrás de un proxy/reverse-proxy con HTTPS
     # (como PythonAnywhere). Django reconoce así que la conexión es segura.
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
