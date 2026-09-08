@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -11,7 +11,9 @@ from decimal import Decimal
 import pandas as pd
 from comedor.models import *
 from comedor.forms import *
-from comedor.cargos import generar_cargos_mensuales
+from comedor.cargos import (
+    generar_cargos_mensuales, desvios_del_periodo, regularizar_familia,
+)
 from comedor.exportar import xlsx_response
 from escuela.models import Cliente, Colegio
 from users.models import Perfil
@@ -924,21 +926,39 @@ def marcar_asistencia_ajax(request, pk):
     return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
 
 
+def _periodo_pedido(datos):
+    """(year, month) de un request, con el mes en curso como valor por defecto."""
+    hoy = timezone.localdate()
+    try:
+        year = int(datos.get('year'))
+        month = int(datos.get('month'))
+        if not (1 <= month <= 12 and 2020 <= year <= 2100):
+            raise ValueError
+    except (TypeError, ValueError):
+        return hoy.year, hoy.month, False
+    return year, month, True
+
+
 class GenerarCargosMensualesView(SuperUserRequiredMixin, View):
-    """Admin: genera los cargos mensuales de comedor de un período (idempotente)."""
+    """Admin: genera los cargos mensuales de comedor de un período (idempotente)
+    y muestra el control de desvíos: familias cuyo cargo del mes no coincide con
+    lo que corresponde hoy (altas y cambios de plan posteriores a la generación).
+    """
     template_name = 'comedor/generar_cargos.html'
 
+    def _contexto(self, year, month, **extra):
+        contexto = {'year': year, 'month': month}
+        contexto.update(desvios_del_periodo(year, month))
+        contexto.update(extra)
+        return contexto
+
     def get(self, request):
-        hoy = timezone.localdate()
-        return render(request, self.template_name, {'year': hoy.year, 'month': hoy.month})
+        year, month, _explicito = _periodo_pedido(request.GET)
+        return render(request, self.template_name, self._contexto(year, month))
 
     def post(self, request):
-        try:
-            year = int(request.POST.get('year'))
-            month = int(request.POST.get('month'))
-            if not (1 <= month <= 12):
-                raise ValueError
-        except (TypeError, ValueError):
+        year, month, valido = _periodo_pedido(request.POST)
+        if not valido:
             messages.error(request, "Período inválido.")
             return redirect('generar_cargos_mensuales')
 
@@ -948,9 +968,45 @@ class GenerarCargosMensualesView(SuperUserRequiredMixin, View):
             f"Cargos {resultado['periodo']}: {len(resultado['creados'])} generados, "
             f"{len(resultado['omitidos'])} omitidos. Total $ {resultado['total']}."
         )
-        return render(request, self.template_name, {
-            'year': year, 'month': month, 'resultado': resultado,
-        })
+        return render(request, self.template_name,
+                      self._contexto(year, month, resultado=resultado))
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso restringido solo para administradores.")
+        return redirect('home')
+
+
+class RegularizarCargoMensualView(SuperUserRequiredMixin, View):
+    """Admin: deja el cargo del mes de UNA familia igual a lo que corresponde hoy.
+
+    Le cobra a los hijos que quedaron sin cargo (alta después de generar el mes)
+    y salda con un ajuste lo que no se pueda imputar a un hijo. No toca los
+    movimientos ya emitidos.
+    """
+
+    def post(self, request):
+        year, month, valido = _periodo_pedido(request.POST)
+        usuario = get_object_or_404(Perfil, pk=request.POST.get('usuario'))
+        if not valido:
+            messages.error(request, "Período inválido.")
+            return redirect('generar_cargos_mensuales')
+
+        resultado = regularizar_familia(usuario, year, month, registrado_por=request.user)
+        partes = []
+        if resultado['creados']:
+            partes.append(f"{len(resultado['creados'])} cargo(s) de hijos que faltaban")
+        if resultado['ajuste']:
+            partes.append(f"un ajuste de $ {resultado['ajuste'].monto}")
+        if partes:
+            messages.success(
+                request,
+                f"{usuario.first_name} {usuario.last_name}: se registró "
+                + " y ".join(partes) + f" para {resultado['periodo']}."
+            )
+        else:
+            messages.info(request, "No había nada que regularizar.")
+
+        return redirect(f"{reverse('generar_cargos_mensuales')}?year={year}&month={month}")
 
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")

@@ -15,15 +15,16 @@
 
     <h2 class="fw-bold mb-1"><i class="bi bi-cash-coin text-success me-2"></i>Generar cargos del mes</h2>
     <p class="text-muted mb-4">
-        Crea el cargo mensual de comedor (mes completo) de cada familia con plan activo.
-        Es seguro repetirlo: las familias que ya tienen el cargo del período se omiten.
-        Si necesitás ajustar un cargo puntual (un alta a mitad de mes, una bonificación),
+        Crea el cargo mensual de comedor (mes completo) de cada hijo con plan activo.
+        Es seguro repetirlo: los hijos que ya tienen el cargo del período se omiten.
+        Si necesitás ajustar un cargo puntual (una bonificación, una baja a mitad de mes),
         editalo en el admin (Cuentas de comedor / Movimientos) y el saldo se recalcula solo.
     </p>
     <p class="text-muted small mb-4">
         <i class="bi bi-info-circle me-1"></i>¿Alguien se anotó después de generar el mes?
         Volvé a apretar “Generar cargos” del mismo mes: se le crea el cargo solo a los nuevos,
-        sin duplicar a los que ya tenían.
+        sin duplicar a los que ya tenían. Lo que quede sin coincidir aparece abajo,
+        en el control del mes.
     </p>
 
     <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -72,11 +73,12 @@
             <h6 class="fw-bold">Cargos generados</h6>
             <div class="table-responsive mb-4">
                 <table class="table table-sm align-middle">
-                    <thead class="text-secondary"><tr><th>Familia</th><th class="text-end">Monto</th></tr></thead>
+                    <thead class="text-secondary"><tr><th>Familia</th><th>Hijo</th><th class="text-end">Monto</th></tr></thead>
                     <tbody>
                         {% for c in resultado.creados %}
                         <tr>
                             <td>{{ c.usuario }}</td>
+                            <td>{% if c.cliente %}{{ c.cliente.nombre }} {{ c.cliente.apellido }}{% else %}—{% endif %}</td>
                             <td class="text-end fw-bold">$ {{ c.monto|floatformat:"0"|intcomma }}</td>
                         </tr>
                         {% endfor %}
@@ -89,13 +91,137 @@
             <h6 class="fw-bold text-muted">Omitidos</h6>
             <ul class="text-muted small">
                 {% for o in resultado.omitidos %}
-                <li>{{ o.usuario }} — {% if o.motivo == 'ya_generado' %}ya tenía el cargo del período{% else %}sin monto a cobrar{% endif %}</li>
+                <li>{{ o.usuario }} —
+                    {% if o.motivo == 'ya_generado' %}ya tenía el cargo del período
+                    {% elif o.motivo == 'cargo_sin_detalle' %}tiene un cargo del mes sin detalle por hijo: revisala en el control de abajo
+                    {% else %}sin monto a cobrar{% endif %}</li>
                 {% endfor %}
             </ul>
             {% endif %}
         </div>
     </div>
     {% endif %}
+
+    <!-- Control del mes: lo cobrado vs. lo que corresponde hoy -->
+    <div class="card border-0 shadow-sm rounded-4 mt-4">
+        <div class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h5 class="fw-bold mb-1">
+                    <i class="bi bi-clipboard-check text-primary me-2"></i>Control del mes {{ periodo }}
+                </h5>
+                <p class="text-muted small mb-0">
+                    Familias cuyo cargo del mes no coincide con el plan que tienen hoy
+                    (altas o cambios de plan posteriores a la generación).
+                </p>
+            </div>
+            <div class="d-flex align-items-end gap-2">
+                <form method="get" class="d-flex align-items-end gap-2">
+                    <div>
+                        <label class="form-label small text-muted mb-1">Año</label>
+                        <input type="number" name="year" class="form-control form-control-sm" value="{{ year }}" min="2020" max="2100">
+                    </div>
+                    <div>
+                        <label class="form-label small text-muted mb-1">Mes</label>
+                        <input type="number" name="month" class="form-control form-control-sm" value="{{ month }}" min="1" max="12">
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Ver</button>
+                </form>
+                {% if desvios %}
+                <span class="badge rounded-pill text-bg-warning fs-6">
+                    {{ desvios|length }} para revisar
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body p-4 pt-2">
+            {% if not desvios %}
+            <div class="text-success fw-bold">
+                <i class="bi bi-check-circle me-2"></i>Todo en orden: lo cobrado coincide con los planes vigentes.
+            </div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="text-secondary">
+                        <tr>
+                            <th>Familia</th>
+                            <th>Detalle de los hijos</th>
+                            <th class="text-end">Cobrado</th>
+                            <th class="text-end">Corresponde</th>
+                            <th class="text-end">Diferencia</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in desvios %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ d.usuario.first_name }} {{ d.usuario.last_name }}</div>
+                                <div class="text-muted small">{{ d.usuario.email }}</div>
+                            </td>
+                            <td class="small">
+                                {% for h in d.hijos %}
+                                <div>
+                                    {% if h.tiene_cargo %}
+                                        <i class="bi bi-check-circle text-success me-1"></i>
+                                    {% else %}
+                                        <i class="bi bi-exclamation-circle text-danger me-1"></i>
+                                    {% endif %}
+                                    {{ h.cliente.nombre }} {{ h.cliente.apellido }}
+                                    <span class="text-muted">
+                                        — {{ h.dias }} día{{ h.dias|pluralize }} ·
+                                        $ {{ h.esperado|floatformat:"0"|intcomma }}
+                                        {% if not h.tiene_cargo %}
+                                            <span class="text-danger fw-bold">sin cargo</span>
+                                        {% endif %}
+                                        {% if h.vigente_desde %}· plan desde {{ h.vigente_desde|date:"d/m/Y" }}{% endif %}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                                {% if d.sin_detalle %}
+                                <div class="text-muted fst-italic mt-1">
+                                    El cargo de este mes es anterior al detalle por hijo:
+                                    se regulariza con un ajuste.
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">$ {{ d.cobrado|floatformat:"0"|intcomma }}</td>
+                            <td class="text-end">$ {{ d.esperado|floatformat:"0"|intcomma }}</td>
+                            <td class="text-end fw-bold {% if d.diferencia > 0 %}text-danger{% else %}text-success{% endif %}">
+                                {% if d.diferencia > 0 %}+{% endif %}$ {{ d.diferencia|floatformat:"0"|intcomma }}
+                            </td>
+                            <td class="text-end">
+                                <form method="post" action="{% url 'regularizar_cargo_mensual' %}"
+                                      onsubmit="return confirm('Regularizar el mes {{ periodo }} de {{ d.usuario.first_name }} {{ d.usuario.last_name }}: la cuenta se mueve en $ {{ d.diferencia|floatformat:"0" }}. ¿Confirmás?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="usuario" value="{{ d.usuario.id }}">
+                                    <input type="hidden" name="year" value="{{ year }}">
+                                    <input type="hidden" name="month" value="{{ month }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        Regularizar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td colspan="4" class="text-end">Diferencia total</td>
+                            <td class="text-end">$ {{ total_diferencia|floatformat:"0"|intcomma }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <p class="text-muted small mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Ojo con las diferencias negativas: si la familia bajó los días a mitad de mes,
+                puede corresponder cobrarle igual el mes completo. Regularizá solo lo que
+                realmente haya que corregir.
+            </p>
+            {% endif %}
+        </div>
+    </div>
 
 </div>
 {% endblock %}

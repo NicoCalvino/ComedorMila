@@ -28,15 +28,34 @@ class CuentaComedorTest(TestCase):
         cuenta.refresh_from_db()
         self.assertEqual(cuenta.saldo, Decimal("-5000.00"))  # negativo = a favor
 
-    def test_un_solo_cargo_mensual_por_periodo(self):
+    def test_un_solo_cargo_mensual_por_periodo_y_por_hijo(self):
+        # El cargo mensual se emite uno por hijo: no puede repetirse el mismo
+        # hijo en el mismo período.
+        col = Colegio.objects.create(nombre="M")
+        cur = Curso.objects.create(curso="1A", colegio=col, nivel="PRIMARIA")
+        hijo = Cliente.objects.create(usuario=self.u, nombre="H", apellido="P", curso=cur)
         cuenta = CuentaComedor.para(self.u)
-        cuenta.agregar_movimiento(MovimientoComedor.CARGO_MENSUAL, Decimal("1000"), periodo="2026-08")
+        cuenta.agregar_movimiento(MovimientoComedor.CARGO_MENSUAL, Decimal("1000"),
+                                  periodo="2026-08", cliente=hijo)
         with self.assertRaises(IntegrityError):
             with transaction.atomic():
                 MovimientoComedor.objects.create(
                     cuenta=cuenta, tipo=MovimientoComedor.CARGO_MENSUAL,
-                    monto=Decimal("1000"), periodo="2026-08",
+                    monto=Decimal("1000"), periodo="2026-08", cliente=hijo,
                 )
+
+    def test_dos_hijos_en_el_mismo_periodo_ok(self):
+        col = Colegio.objects.create(nombre="M")
+        cur = Curso.objects.create(curso="1A", colegio=col, nivel="PRIMARIA")
+        h1 = Cliente.objects.create(usuario=self.u, nombre="Uno", apellido="P", curso=cur)
+        h2 = Cliente.objects.create(usuario=self.u, nombre="Dos", apellido="P", curso=cur)
+        cuenta = CuentaComedor.para(self.u)
+        cuenta.agregar_movimiento(MovimientoComedor.CARGO_MENSUAL, Decimal("1000"),
+                                  periodo="2026-08", cliente=h1)
+        cuenta.agregar_movimiento(MovimientoComedor.CARGO_MENSUAL, Decimal("900"),
+                                  periodo="2026-08", cliente=h2)
+        cuenta.refresh_from_db()
+        self.assertEqual(cuenta.saldo, Decimal("1900.00"))
 
     def test_dos_periodos_distintos_ok(self):
         cuenta = CuentaComedor.para(self.u)

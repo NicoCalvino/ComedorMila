@@ -150,7 +150,8 @@ class CuentaComedor(models.Model):
         return self.saldo
 
     def agregar_movimiento(self, tipo, monto, concepto="", periodo=None,
-                           registrado_por=None, fecha=None, vale_diario=None):
+                           registrado_por=None, fecha=None, vale_diario=None,
+                           cliente=None):
         """Crea un movimiento firmado y actualiza el saldo de forma atómica.
 
         `monto` debe venir ya firmado según la convención (cargos +, pagos/créditos -).
@@ -165,6 +166,7 @@ class CuentaComedor(models.Model):
                 registrado_por=registrado_por,
                 fecha=fecha or timezone.now(),
                 vale_diario=vale_diario,
+                cliente=cliente,
             )
             self.recalcular_saldo()
         return mov
@@ -195,7 +197,7 @@ class MovimientoComedor(models.Model):
     concepto = models.CharField(max_length=200, blank=True, default="")
     periodo = models.CharField(
         max_length=7, null=True, blank=True,
-        help_text="AAAA-MM (solo para cargos mensuales).",
+        help_text="AAAA-MM (cargos mensuales y ajustes de un mes).",
     )
     fecha = models.DateTimeField(default=timezone.now)
     registrado_por = models.ForeignKey(
@@ -206,15 +208,24 @@ class MovimientoComedor(models.Model):
         'comedor.ValeDiario', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='movimientos_comedor',
     )
+    # Hijo al que corresponde el movimiento. El cargo mensual se emite UNO POR
+    # HIJO: así se puede volver a generar el mismo período y cobrarle solo a
+    # los que faltan (un alta a mitad de mes) sin re-cobrarle a los que ya
+    # estaban facturados. Null = movimiento de la familia (pagos, ajustes) o
+    # cargo viejo, anterior al detalle por hijo.
+    cliente = models.ForeignKey(
+        Cliente, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='movimientos_comedor',
+    )
     creado = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-fecha', '-id']
         constraints = [
             models.UniqueConstraint(
-                fields=['cuenta', 'periodo'],
+                fields=['cuenta', 'periodo', 'cliente'],
                 condition=models.Q(tipo='CARGO_MENSUAL'),
-                name='unico_cargo_mensual_por_periodo',
+                name='unico_cargo_mensual_por_periodo_hijo',
             ),
         ]
 

@@ -17,6 +17,7 @@ urlpatterns = [
     path("importar_precios/", ImportarPreciosView.as_view(), name="importar_precios"),
 
     path("generar_cargos", GenerarCargosMensualesView.as_view(), name="generar_cargos_mensuales"),
+    path("generar_cargos/regularizar", RegularizarCargoMensualView.as_view(), name="regularizar_cargo_mensual"),
     path("registrar_pago", RegistrarPagoComedorView.as_view(), name="registrar_pago_comedor"),
     path("registrar_pago_admin", RegistrarPagoAdminComedorView.as_view(), name="registrar_pago_admin_comedor"),
     path("gestion_pagos", GestionPagosComedorView.as_view(), name="gestion_pagos_comedor"),

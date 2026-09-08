@@ -54,7 +54,7 @@ class ConfiguracionComedorAdmin(admin.ModelAdmin):
 class MovimientoComedorInline(admin.TabularInline):
     model = MovimientoComedor
     extra = 0
-    fields = ("fecha", "tipo", "monto", "periodo", "concepto", "registrado_por")
+    fields = ("fecha", "tipo", "monto", "periodo", "cliente", "concepto", "registrado_por")
     readonly_fields = ("creado",)
     ordering = ("-fecha", "-id")
 
@@ -70,7 +70,7 @@ class CuentaComedorAdmin(admin.ModelAdmin):
 
 @admin.register(MovimientoComedor)
 class MovimientoComedorAdmin(admin.ModelAdmin):
-    list_display = ("fecha", "cuenta", "tipo", "monto", "periodo", "concepto")
+    list_display = ("fecha", "cuenta", "tipo", "monto", "periodo", "cliente", "concepto")
     list_display_links = ("fecha", "cuenta")
     list_filter = ("tipo", "periodo")
     search_fields = ("cuenta__usuario__email", "concepto")
