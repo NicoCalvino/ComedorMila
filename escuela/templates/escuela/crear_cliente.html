@@ -1,6 +1,6 @@
 {% extends 'main/index.html' %}
 
-{% block titulo %}<title>Comedor Colegio Mallinckrodt - Nueva Alumna</title> {% endblock %}
+{% block titulo %}<title>Comedor Colegio Mallinckrodt - Nuevo Alumno</title> {% endblock %}
 
 {% block Bienvenida %} {% endblock %}
 
@@ -10,10 +10,10 @@
     <div class="row justify-content-center mb-4">
         <div class="col-lg-5 d-flex justify-content-between align-items-center">
             <div>
-                <h2 class="fw-bold mb-0" style="color: #333;">👩‍🎓 Nuevo Cliente</h2>
-                <p class="text-muted mb-0">Completa la ficha del Cliente.</p>
+                <h2 class="fw-bold mb-0" style="color: #333;">👩‍🎓 Nuevo Alumno</h2>
+                <p class="text-muted mb-0">Completá los datos del alumno.</p>
             </div>
-            <a href="{% url 'home' %}" class="btn btn-outline-secondary rounded-pill px-4">
+            <a href="{{ next_url }}" class="btn btn-outline-secondary rounded-pill px-4">
                 <i class="bi bi-arrow-left"></i> Volver
             </a>
         </div>
@@ -24,6 +24,7 @@
             <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5" style="background-color: #fff;">
                 
                 <form method="post" novalidate>
+                    <input type="hidden" name="next" value="{{ next_url }}">
                     {% csrf_token %}
 
 
@@ -90,7 +91,7 @@
 
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm py-3">
-                            <i class="bi bi-check-lg me-2"></i>Guardar Cliente
+                            <i class="bi bi-check-lg me-2"></i>Guardar alumno
                         </button>
                     </div>
 

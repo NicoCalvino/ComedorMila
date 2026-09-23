@@ -38,10 +38,10 @@
                     <div class="mb-4">
                         <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
                     </div>
-                    <h3 class="fw-bold">Aún no tienes clientes</h3>
-                    <p class="text-muted">Parece que todavía no has registrado a nadie. ¡Comienza ahora mismo!</p>
-                    <a href="{% url 'crear_cliente' %}" class="btn btn-warning fw-bold px-4">
-                        <i class="bi bi-plus-lg me-2"></i>Crear mi primer cliente
+                    <h3 class="fw-bold">Todavía no agregaste ningún alumno</h3>
+                    <p class="text-muted">Sumá a tu hijo o hija para empezar a cargarle saldo en el kiosco.</p>
+                    <a href="{% url 'crear_cliente' %}?next={% url 'kiosco_familia' %}" class="btn btn-warning fw-bold px-4">
+                        <i class="bi bi-plus-lg me-2"></i>Agregar alumno
                     </a>
                 </div>
             </div>
@@ -50,7 +50,7 @@
         <!-- Tarjeta extra para agregar más alumnos si ya existen algunos -->
         {% if clientes %}
         <div class="col-md-4 col-lg-3">
-            <a href="{% url 'crear_cliente' %}" class="text-decoration-none h-100">
+            <a href="{% url 'crear_cliente' %}?next={% url 'kiosco_familia' %}" class="text-decoration-none h-100">
                 <div class="card card-custom p-4 text-center h-100 d-flex flex-column justify-content-center border-dashed" style="border: 2px dashed #dee2e6; background: transparent;">
                     <div class="icon-box text-muted">
                         <i class="bi bi-plus-circle-dotted"></i>

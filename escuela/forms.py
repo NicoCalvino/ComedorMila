@@ -24,12 +24,13 @@ class ColegioForm(forms.ModelForm):
 class CursoForm(forms.ModelForm):
     class Meta:
         model = Curso
-        fields = ["curso","colegio","nivel"]
+        fields = ["curso","colegio","nivel","turno"]
 
         widgets = {
             'curso':forms.TextInput(attrs={'class':'form-control'}),
             'nivel':forms.Select(attrs={'class':'form-control'}),
             'colegio':forms.Select(attrs={'class':'form-control'}),
+            'turno':forms.TimeInput(attrs={'class':'form-control', 'type':'time'}, format='%H:%M'),
         }
 
     def clean(self):

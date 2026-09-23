@@ -82,3 +82,68 @@ class PagoComedorTest(TestCase):
         self.assertEqual(sol.estado, SolicitudPagoComedor.APROBADO)
         self.cuenta.refresh_from_db()
         self.assertEqual(self.cuenta.saldo, Decimal("60000.00"))  # 100000 - 40000
+
+    # --- Pago en efectivo -------------------------------------------------
+
+    def test_form_transferencia_exige_comprobante(self):
+        f = SolicitudPagoComedorForm(data={'monto': '30000', 'medio_pago': 'TRANSFERENCIA'})
+        self.assertFalse(f.is_valid())
+        self.assertIn('comprobante', f.errors)
+
+    def test_form_sin_medio_es_transferencia(self):
+        f = SolicitudPagoComedorForm(data={'monto': '30000'}, files={'comprobante': _png()})
+        self.assertTrue(f.is_valid(), f.errors)
+        self.assertEqual(f.cleaned_data['medio_pago'], SolicitudPagoComedor.TRANSFERENCIA)
+
+    def test_padre_envia_pago_en_efectivo_sin_comprobante(self):
+        c = Client(); c.force_login(self.u, backend=MB)
+        r = c.post(reverse('registrar_pago_comedor'), {'monto': '25000', 'medio_pago': 'EFECTIVO'})
+        self.assertRedirects(r, reverse('comedor_familia'), fetch_redirect_response=False)
+        sol = SolicitudPagoComedor.objects.get(usuario=self.u)
+        self.assertEqual(sol.medio_pago, SolicitudPagoComedor.EFECTIVO)
+        self.assertEqual(sol.estado, SolicitudPagoComedor.PENDIENTE)
+        self.assertFalse(sol.comprobante)
+        self.cuenta.refresh_from_db()
+        self.assertEqual(self.cuenta.saldo, Decimal("100000.00"))  # aún sin aprobar
+
+    def test_efectivo_descarta_comprobante_adjunto(self):
+        f = SolicitudPagoComedorForm(
+            data={'monto': '25000', 'medio_pago': 'EFECTIVO'}, files={'comprobante': _png()},
+        )
+        self.assertTrue(f.is_valid(), f.errors)
+        self.assertIsNone(f.cleaned_data['comprobante'])
+
+    def test_aprobar_efectivo_baja_saldo(self):
+        sol = SolicitudPagoComedor.objects.create(
+            usuario=self.u, monto=Decimal("25000"), medio_pago=SolicitudPagoComedor.EFECTIVO,
+        )
+        mov = sol.aprobar(self.admin)
+        self.assertEqual(mov.concepto, "Pago de comedor (efectivo)")
+        self.cuenta.refresh_from_db()
+        self.assertEqual(self.cuenta.saldo, Decimal("75000.00"))
+
+    # --- Descripción del pago (admin) -------------------------------------
+
+    def test_descripcion_se_suma_al_concepto(self):
+        sol = SolicitudPagoComedor.objects.create(
+            usuario=self.u, monto=Decimal("10000"), descripcion="Cuota de agosto",
+        )
+        mov = sol.aprobar(self.admin)
+        self.assertEqual(mov.concepto, "Pago de comedor - Cuota de agosto")
+
+    @override_settings(MIDDLEWARE=_MW_SIN_OTP)
+    def test_admin_carga_pago_con_descripcion(self):
+        # El selector de familias solo lista perfiles con al menos un alumno.
+        from escuela.models import Colegio, Curso, Cliente
+        col = Colegio.objects.create(nombre="Col Test")
+        cur = Curso.objects.create(curso="1A", colegio=col, nivel="PRIMARIA")
+        Cliente.objects.create(usuario=self.u, nombre="H", apellido="P", curso=cur)
+        c = Client(); c.force_login(self.admin, backend=MB)
+        r = c.post(reverse('registrar_pago_admin_comedor'), {
+            'familia': self.u.pk, 'monto': '20000', 'descripcion': '  Pagó la abuela  ',
+        })
+        self.assertEqual(r.status_code, 302)
+        sol = SolicitudPagoComedor.objects.get(usuario=self.u)
+        self.assertEqual(sol.descripcion, "Pagó la abuela")
+        self.assertEqual(sol.estado, SolicitudPagoComedor.APROBADO)
+        self.assertEqual(sol.movimiento.concepto, "Pago de comedor - Pagó la abuela")

@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.contrib import messages
 from django.views import View
@@ -167,6 +168,25 @@ class CursoDeleteView(SuperUserRequiredMixin, DeleteView):
         messages.error(self.request, "Acceso restringido solo para administradores.")
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
+def _parsear_turno(valor):
+    """Turno del Excel -> datetime.time (o None si viene vacío).
+    Acepta una celda con formato hora de Excel o un texto tipo "12:30" / "12:30:00"."""
+    from datetime import datetime as _dt, time as _time
+    if valor in ('', None):
+        return None
+    if isinstance(valor, _dt):
+        return valor.time().replace(second=0, microsecond=0)
+    if isinstance(valor, _time):
+        return valor.replace(second=0, microsecond=0)
+    texto = str(valor).strip()
+    for formato in ('%H:%M', '%H:%M:%S', '%H.%M'):
+        try:
+            return _dt.strptime(texto, formato).time()
+        except ValueError:
+            pass
+    raise ValueError(f"Turno inválido: '{texto}'. Usá el formato HH:MM (ej. 12:30).")
+
+
 class ImportarCursosView(SuperUserRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         excel_file = request.FILES.get('archivo_excel')
@@ -192,6 +212,7 @@ class ImportarCursosView(SuperUserRequiredMixin, View):
                 curso = str(row.get('curso', '')).strip()
                 nivel = str(row.get('nivel', '')).strip()
                 nombre_colegio = str(row.get('colegio', '')).strip()
+                turno_raw = row.get('turno', '')
 
                 try:
                     colegio_obj = Colegio.objects.get(nombre=nombre_colegio)
@@ -208,6 +229,7 @@ class ImportarCursosView(SuperUserRequiredMixin, View):
                         curso=curso,
                         nivel=nivel,
                         colegio=colegio_obj,
+                        turno=_parsear_turno(turno_raw),
                     )
                     resultados['exitos'] += 1
                 
@@ -239,8 +261,8 @@ class ListaClientesView(SuperUserRequiredMixin, ListView):
     context_object_name = 'clientes'
 
     def get_queryset(self):
-        # Obtenemos el queryset base
-        queryset = super().get_queryset()
+        # Obtenemos el queryset base (sin los alumnos de usuarios desactivados)
+        queryset = super().get_queryset().filter(usuario__is_active=True)
         
         # Parámetros de búsqueda y orden
         busqueda = self.request.GET.get("nombre")
@@ -290,6 +312,26 @@ class CrearClienteView(LoginRequiredMixin, CreateView):
         form.instance.usuario = self.request.user
         
         return super().form_valid(form)
+
+    def get_next_url(self):
+        """Página a la que volver: la que abrió el formulario (?next=), o el Home.
+        Solo se aceptan URLs internas del sitio para evitar redirecciones abiertas."""
+        destino = self.request.POST.get('next') or self.request.GET.get('next')
+        if destino and url_has_allowed_host_and_scheme(
+            destino,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        ):
+            return destino
+        return reverse('home')
+
+    def get_success_url(self):
+        return self.get_next_url()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['next_url'] = self.get_next_url()
+        return context
     
 class DetalleClienteView(LoginRequiredMixin, ClienteOwnerRequiredMixin, DetailView):
     model = Cliente

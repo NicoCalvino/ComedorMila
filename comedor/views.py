@@ -409,8 +409,26 @@ class ComedorDiarioView(SuperUserRequiredMixin,ListView):
     template_name = "comedor/lista_vales_diarios.html"
     context_object_name = "vales"
 
+    def ver_todos(self):
+        return self.request.GET.get('todos') == '1'
+
+    def inicio_semana(self):
+        hoy = timezone.localdate()
+        return hoy - timedelta(days=hoy.weekday())  # lunes de esta semana
+
     def get_queryset(self):
-        return super().get_queryset()
+        # Más nuevos arriba. Por defecto solo la semana actual y las futuras
+        # (las semanas ya terminadas se ven con "Ver todos los vales").
+        qs = ValeDiario.objects.select_related('cliente', 'usuario').order_by('-fecha', '-pk')
+        if not self.ver_todos():
+            qs = qs.filter(fecha__gte=self.inicio_semana())
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['ver_todos'] = self.ver_todos()
+        context['inicio_semana'] = self.inicio_semana()
+        return context
     
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
@@ -624,6 +642,126 @@ class ImportarValesDiariosView(SuperUserRequiredMixin, View):
         return redirect('home') # Cambia 'index' por el nombre de tu URL de destino
 
 # Reportes
+def opciones_turno():
+    """Turnos de almuerzo cargados en los cursos, para los filtros.
+
+    Devuelve [(valor 'HH:MM', etiqueta)] ordenado por hora. Si todos los cursos
+    de un turno son de Jardín, la etiqueta es "Jardín" en lugar de la hora.
+    """
+    from escuela.models import Curso
+    niveles_por_turno = {}
+    for turno, nivel in Curso.objects.filter(turno__isnull=False).values_list('turno', 'nivel'):
+        niveles_por_turno.setdefault(turno, set()).add(nivel)
+    opciones = []
+    for turno in sorted(niveles_por_turno):
+        valor = turno.strftime('%H:%M')
+        etiqueta = "Jardín" if niveles_por_turno[turno] == {"JARDIN"} else f"{valor} hs"
+        opciones.append((valor, etiqueta))
+    return opciones
+
+
+_PALABRAS_CELIACO = ('tacc', 'celiac', 'gluten')
+
+
+def _normalizar(texto):
+    import unicodedata
+    texto = unicodedata.normalize('NFD', (texto or '').lower())
+    return ''.join(ch for ch in texto if unicodedata.category(ch) != 'Mn')
+
+
+def es_comentario_celiaco(texto):
+    t = _normalizar(texto)
+    return any(p in t for p in _PALABRAS_CELIACO)
+
+
+def clientes_celiacos(clientes_ids):
+    """IDs de alumnos marcados como celíacos / sin TACC en algún comentario de
+    sus vales (plan mensual o cualquier vale diario). No hay un campo específico
+    en el alumno, así que se infiere de los comentarios."""
+    ids = set()
+    for modelo in (ValeMensual, ValeDiario):
+        filas = modelo.objects.filter(
+            cliente_id__in=clientes_ids,
+        ).exclude(comentarios__isnull=True).exclude(comentarios='').values_list('cliente_id', 'comentarios')
+        for cliente_id, comentario in filas:
+            if es_comentario_celiaco(comentario):
+                ids.add(cliente_id)
+    return ids
+
+
+def nombre_curso_totales(curso):
+    """Nombre del curso para "Totales por Curso": secundaria entera como "SEC" y
+    primaria sin división ("4° Grado A" y "4° Grado B" -> "4° Grado").
+    Devuelve (nombre, orden)."""
+    import re
+    if curso.nivel == 'SECUNDARIA':
+        return 'SEC', (1, 0)
+    m = re.search(r"\d+", curso.curso or "")
+    if curso.nivel == 'PRIMARIA' and m:
+        grado = int(m.group())
+        return f"{grado}° Grado", (0, grado)
+    return curso.curso, (0, 99)
+
+
+def totales_reporte(lista_asistencia):
+    """Totales del reporte diario: por turno, por curso (sin Jardín y con
+    Secundaria agrupada como "SEC") y la lista de celíacos del día."""
+    etiquetas_turno = dict(opciones_turno())
+
+    por_turno = {}
+    por_curso = {}
+    for item in lista_asistencia:
+        curso = item['cliente'].curso
+        clave_turno = curso.turno.strftime('%H:%M') if curso.turno else None
+        por_turno[clave_turno] = por_turno.get(clave_turno, 0) + 1
+        if curso.nivel == 'JARDIN':
+            continue
+        nombre, orden = nombre_curso_totales(curso)
+        actual = por_curso.setdefault(nombre, {'nombre': nombre, 'cantidad': 0, 'orden': orden})
+        actual['cantidad'] += 1
+
+    turnos = [
+        {'nombre': etiquetas_turno.get(k, f"{k} hs"), 'cantidad': v}
+        for k, v in sorted(por_turno.items(), key=lambda kv: (kv[0] is None, kv[0] or ''))
+        if k is not None
+    ]
+    if None in por_turno:
+        turnos.append({'nombre': 'Sin turno', 'cantidad': por_turno[None]})
+
+    cursos = sorted(por_curso.values(), key=lambda c: c['orden'])
+
+    ids_celiacos = clientes_celiacos([i['cliente'].pk for i in lista_asistencia])
+    celiacos = []
+    for item in lista_asistencia:
+        c = item['cliente']
+        if c.pk in ids_celiacos or es_comentario_celiaco(item.get('comentarios')):
+            turno = c.curso.turno.strftime('%H:%M') if c.curso.turno else None
+            celiacos.append({
+                'nombre': f"{c.nombre} {c.apellido}",
+                'curso': c.curso.curso if c.curso.nivel == 'JARDIN' else nombre_curso_totales(c.curso)[0],
+                'nivel': c.curso.nivel,
+                'turno': etiquetas_turno.get(turno, 'Sin turno') if turno else 'Sin turno',
+                'comentarios': item.get('comentarios') or '',
+            })
+
+    return {
+        'turnos': turnos,
+        'total_general': len(lista_asistencia),
+        'cursos': cursos,
+        'total_cursos': sum(c['cantidad'] for c in cursos),
+        'celiacos': celiacos,
+        'celiacos_sin_jardin': [c for c in celiacos if c['nivel'] != 'JARDIN'],
+    }
+
+
+def parsear_filtro_turno(valor):
+    """'HH:MM' del filtro -> datetime.time, o None si viene vacío o mal formado."""
+    try:
+        return datetime.strptime(valor, '%H:%M').time() if valor else None
+    except ValueError:
+        return None
+
+
 class ReporteDiarioView(SuperUserRequiredMixin,TemplateView):
     template_name = 'comedor/reporte_diario.html'
 
@@ -635,6 +773,7 @@ class ReporteDiarioView(SuperUserRequiredMixin,TemplateView):
         filtro_nivel = self.request.GET.get('nivel')
         filtro_comentarios = self.request.GET.get('comentarios')
         filtro_origen = self.request.GET.get('origen')
+        filtro_turno = parsear_filtro_turno(self.request.GET.get('turno'))
         fecha_str = self.request.GET.get('fecha')
 
         ahora = timezone.localtime(timezone.now())
@@ -687,6 +826,9 @@ class ReporteDiarioView(SuperUserRequiredMixin,TemplateView):
 
         q_mensual = Q(**{f"{nombre_campo_dia}": True}) if nombre_campo_dia else Q(pk__in=[])
         q_diario = Q(fecha=fecha_consulta, cancelado=False)
+        # Fuera los alumnos de usuarios desactivados (cuentas duplicadas, etc.)
+        q_mensual &= Q(cliente__usuario__is_active=True)
+        q_diario &= Q(cliente__usuario__is_active=True)
 
         if filtro_colegio:
             q_mensual &= Q(cliente__colegio_id=filtro_colegio)
@@ -696,10 +838,14 @@ class ReporteDiarioView(SuperUserRequiredMixin,TemplateView):
             q_mensual &= Q(cliente__curso__nivel=filtro_nivel)
             q_diario &= Q(cliente__curso__nivel=filtro_nivel)
 
+        if filtro_turno:
+            q_mensual &= Q(cliente__curso__turno=filtro_turno)
+            q_diario &= Q(cliente__curso__turno=filtro_turno)
+
         # 3. Obtener alumnos por Vale Mensual (si no es fin de semana)
         if nombre_campo_dia:
             # Filtramos dinámicamente por el nombre del campo (ej: lunes=True)
-            mensuales = ValeMensual.objects.filter(q_mensual).select_related('cliente')
+            mensuales = ValeMensual.objects.filter(q_mensual).select_related('cliente__curso')
             
             if filtro_origen != 'diario':
                 for vale in mensuales:
@@ -715,7 +861,7 @@ class ReporteDiarioView(SuperUserRequiredMixin,TemplateView):
                     })
         
         # 4. Obtener alumnos por Vale Diario
-        diarios = ValeDiario.objects.filter(q_diario).select_related('cliente')
+        diarios = ValeDiario.objects.filter(q_diario).select_related('cliente__curso')
 
         for vale in diarios:
             comentario = vale.comentarios or ""
@@ -737,6 +883,8 @@ class ReporteDiarioView(SuperUserRequiredMixin,TemplateView):
 
         context['lista_asistencia'] = lista_asistencia
         context['fecha_consulta'] = fecha_consulta
+        context['opciones_turno'] = opciones_turno()
+        context['totales'] = totales_reporte(lista_asistencia)
         return context
     
     def handle_no_permission(self):
@@ -759,16 +907,18 @@ class AsistenciaView(SuperUserRequiredMixin,TemplateView):
             fecha_consulta += timedelta(days=1)
 
         # 2. Verificar si ya existen registros para este día
-        asistencias = Asistencia.objects.filter(fecha=fecha_consulta).select_related('cliente__curso')
+        asistencias = Asistencia.objects.filter(fecha=fecha_consulta, cliente__usuario__is_active=True).select_related('cliente__curso')
 
         if not asistencias.exists() or self.request.GET.get('regenerar') == 'true':
             self.generar_asistencias(fecha_consulta)
-            asistencias = Asistencia.objects.filter(fecha=fecha_consulta).select_related('cliente__curso')
+            asistencias = Asistencia.objects.filter(fecha=fecha_consulta, cliente__usuario__is_active=True).select_related('cliente__curso')
 
         # Ordenar para la lista
         asistencias = asistencias.order_by('cliente__curso__nivel', 'cliente__curso__curso', 'cliente__nombre')
         
         context['asistencias'] = asistencias
+        context['asistencias_presentes'] = asistencias.filter(asistio=True).count()
+        context['opciones_turno'] = opciones_turno()
         context['fecha_consulta'] = fecha_consulta
         return context
 
@@ -785,11 +935,11 @@ class AsistenciaView(SuperUserRequiredMixin,TemplateView):
 
         # Mensuales
         if nombre_campo:
-            mensuales = ValeMensual.objects.filter(**{nombre_campo: True}).values_list('cliente_id', flat=True)
+            mensuales = ValeMensual.objects.filter(**{nombre_campo: True}, cliente__usuario__is_active=True).values_list('cliente_id', flat=True)
             alumnos_del_dia.extend(list(mensuales))
 
         # Diarios
-        diarios = ValeDiario.objects.filter(fecha=fecha, cancelado=False).values_list('cliente_id', flat=True)
+        diarios = ValeDiario.objects.filter(fecha=fecha, cancelado=False, cliente__usuario__is_active=True).values_list('cliente_id', flat=True)
         alumnos_del_dia.extend(list(diarios))
 
         # Limpiar duplicados (por si tiene ambos vales)
@@ -813,8 +963,8 @@ class ReporteFacturacionView(SuperUserRequiredMixin,ListView):
     context_object_name = 'usuarios'
 
     def get_queryset(self):
-        # Traemos solo perfiles que tienen vales mensuales activos
-        return Perfil.objects.filter(valemensual__isnull=False).distinct()
+        # Traemos solo perfiles activos que tienen vales mensuales
+        return Perfil.objects.filter(valemensual__isnull=False, is_active=True).distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1054,7 +1204,13 @@ class RegistrarPagoComedorView(LoginRequiredMixin, CreateView):
 
         form.instance.usuario = self.request.user
         form.instance.estado = SolicitudPagoComedor.PENDIENTE
-        messages.success(self.request, "¡Pago registrado! Queda pendiente de aprobación.")
+        if form.cleaned_data.get('medio_pago') == SolicitudPagoComedor.EFECTIVO:
+            messages.success(
+                self.request,
+                "¡Pago en efectivo registrado! Queda pendiente hasta que el comedor reciba el dinero.",
+            )
+        else:
+            messages.success(self.request, "¡Pago registrado! Queda pendiente de aprobación.")
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -1084,6 +1240,7 @@ class RegistrarPagoAdminComedorView(SuperUserRequiredMixin, View):
         familia = form.cleaned_data['familia']
         monto = form.cleaned_data['monto']
         comprobante = form.cleaned_data.get('comprobante')
+        descripcion = form.cleaned_data.get('descripcion', '')
 
         # Reutiliza el circuito ya probado: se crea la solicitud y se aprueba en
         # el acto (registrado_por = admin). Queda trazable en "Últimos resueltos".
@@ -1091,6 +1248,7 @@ class RegistrarPagoAdminComedorView(SuperUserRequiredMixin, View):
             usuario=familia,
             monto=monto,
             comprobante=comprobante if comprobante else None,
+            descripcion=descripcion,
             estado=SolicitudPagoComedor.PENDIENTE,
         )
         sol.aprobar(request.user)
@@ -1260,7 +1418,7 @@ class EstadoCuentaComedorView(SuperUserRequiredMixin, ListView):
 
     def _base_qs(self):
         qs = (Perfil.objects
-              .filter(clientes__isnull=False, is_superuser=False)
+              .filter(clientes__isnull=False, is_superuser=False, is_active=True)
               .distinct()
               .annotate(saldo_comedor=Coalesce(
                   'cuenta_comedor__saldo',
@@ -1380,7 +1538,7 @@ class ComedorMensualExcelView(_ExcelBase):
     def get(self, request):
         headers = ['Alumno', 'Curso', 'Colegio', 'Días', 'Comentarios']
         rows = []
-        vales = ValeMensual.objects.select_related(
+        vales = ValeMensual.objects.filter(cliente__usuario__is_active=True).select_related(
             'cliente', 'cliente__curso', 'cliente__curso__colegio'
         ).order_by('cliente__curso__nivel', 'cliente__nombre')
         for v in vales:

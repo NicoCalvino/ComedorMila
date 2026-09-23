@@ -7,7 +7,9 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from kiosco.models import *
-from comedor.models import CuentaComedor, SolicitudPagoComedor
+from decimal import ROUND_HALF_UP
+from comedor.models import CuentaComedor, SolicitudPagoComedor, Precio
+from escuela.models import Colegio
 from comedor.facturacion import facturacion_padre
 from comedor.inasistencias import tiene_plan
 
@@ -55,6 +57,42 @@ def kiosco_familia(request):
     return render(request, "main/kiosco_familia.html", {'clientes': clientes})
 
 
+def _tarifarios_comedor(clientes):
+    """Tarifario del comedor para mostrarle al padre antes de cargar un vale.
+
+    Un bloque por colegio: los colegios de sus alumnos o, si todavía no cargó
+    ninguno, todos los que tengan precios. Usa las mismas consultas que las
+    pantallas de vale mensual y vale diario (vale diario = 1 día/semana / 4,
+    igual que comedor.cargos.precio_vale_diario).
+    """
+    colegio_ids = {c.curso.colegio_id for c in clientes}
+    colegios = Colegio.objects.filter(precio__isnull=False).distinct().order_by('nombre')
+    if colegio_ids:
+        colegios = colegios.filter(pk__in=colegio_ids)
+
+    def vale_diario(colegio, nivel):
+        p = Precio.objects.filter(alm_por_sem=1, nivel=nivel, colegio=colegio).first()
+        if not p:
+            return Decimal('0.00')
+        return (Decimal(p.precio) / 4).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    tarifarios = []
+    for colegio in colegios:
+        escuela = Precio.objects.filter(colegio=colegio, nivel="PRIMARIA/SECUNDARIA")
+        tarifarios.append({
+            'colegio': colegio,
+            'filas_escuela': [
+                (nro, list(escuela.filter(nro_de_cliente=nro).order_by('alm_por_sem')))
+                for nro in (1, 2, 3)
+            ],
+            'precios_jardin': list(Precio.objects.filter(
+                colegio=colegio, nivel="JARDIN").order_by('alm_por_sem')),
+            'vale_jardin': vale_diario(colegio, "JARDIN"),
+            'vale_escuela': vale_diario(colegio, "PRIMARIA/SECUNDARIA"),
+        })
+    return tarifarios
+
+
 @login_required
 def comedor_familia(request):
     """Sección Comedor del padre: bloque por alumno + costo mensual del comedor.
@@ -95,6 +133,7 @@ def comedor_familia(request):
         'movimientos': movimientos,
         'pagos_pendientes': pagos_pendientes,
         'total_pagos_pendientes': total_pagos_pendientes,
+        'tarifarios': _tarifarios_comedor(clientes),
     })
 
 @user_passes_test(lambda u: u.is_superuser)

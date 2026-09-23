@@ -9,33 +9,44 @@
         <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
             <i class="bi bi-arrow-left me-2"></i>Volver al Inicio
         </a>
-        <a href="{% url 'asistencia_dia' %}" class="btn btn-success shadow-sm">
+        <!-- En celular este botón se muestra debajo de la fecha -->
+        <a href="{% url 'asistencia_dia' %}" class="btn btn-success shadow-sm d-none d-md-inline-block">
             <i class="bi bi-check2-square me-2"></i>Ir a Tomar Asistencia
         </a>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <a href="?fecha={{ fecha_anterior }}&colegio={{ request.GET.colegio }}&nivel={{ request.GET.nivel }}&comentarios={{ request.GET.comentarios }}&origen={{ request.GET.origen }}" 
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <!-- Fecha con flechas: en celular ocupa todo el ancho -->
+        <div class="d-flex align-items-center justify-content-between justify-content-md-start gap-3 bloque-fecha">
+            <a href="?fecha={{ fecha_anterior }}&colegio={{ request.GET.colegio }}&nivel={{ request.GET.nivel }}&turno={{ request.GET.turno }}&comentarios={{ request.GET.comentarios }}&origen={{ request.GET.origen }}" 
             class="btn btn-outline-dark btn-sm rounded-circle">
                 <i class="bi bi-chevron-left"></i>
             </a>
 
-            <h2 class="fw-bold mb-0">
+            <h2 class="fw-bold mb-0 titulo-fecha text-center text-md-start">
                 <i class="bi bi-calendar-event-fill me-2 text-success"></i>
-                {{ fecha_consulta|date:"l d \d\e F"|capfirst }}
+                <span class="d-none d-md-inline">{{ fecha_consulta|date:"l d \d\e F"|capfirst }}</span>
+                <!-- Celular: versión corta, ej. "Mar 22/09" -->
+                <span class="d-md-none text-nowrap">{{ fecha_consulta|date:"D d/m"|capfirst }}</span>
                 {% if fecha_consulta == hoy %}
                     <span class="badge bg-primary ms-2" style="font-size: 0.5em; vertical-align: middle;">HOY</span>
                 {% endif %}
             </h2>
 
-            <a href="?fecha={{ fecha_siguiente }}&colegio={{ request.GET.colegio }}&nivel={{ request.GET.nivel }}&comentarios={{ request.GET.comentarios }}&origen={{ request.GET.origen }}" 
+            <a href="?fecha={{ fecha_siguiente }}&colegio={{ request.GET.colegio }}&nivel={{ request.GET.nivel }}&turno={{ request.GET.turno }}&comentarios={{ request.GET.comentarios }}&origen={{ request.GET.origen }}" 
             class="btn btn-outline-dark btn-sm rounded-circle">
                 <i class="bi bi-chevron-right"></i>
             </a>
         </div>
 
-        <div class="d-flex gap-2 align-items-center">
+        <!-- Computadora / tablet -->
+        <div class="d-none d-md-flex gap-2 align-items-center flex-wrap justify-content-end">
+            <button type="button" class="btn btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTotalesTurno">
+                <i class="bi bi-clock me-1"></i>Totales por Turno
+            </button>
+            <button type="button" class="btn btn-outline-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTotalesCurso">
+                <i class="bi bi-people me-1"></i>Totales por Curso
+            </button>
             <a href="{% url 'reporte_diario_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success shadow-sm">
                 <i class="bi bi-file-earmark-excel me-2"></i>Descargar Excel
             </a>
@@ -45,9 +56,47 @@
         </div>
     </div>
 
+    <!-- Celular: totales y filtros se despliegan con este botón -->
+    <div class="d-md-none mb-3">
+        <button class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center" type="button"
+                data-bs-toggle="collapse" data-bs-target="#panelMovilReporte" aria-expanded="false" aria-controls="panelMovilReporte">
+            <span><i class="bi bi-sliders me-2"></i>Totales y filtros</span>
+            <span class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark rounded-pill">{{ lista_asistencia|length }}</span>
+                <i class="bi bi-chevron-down"></i>
+            </span>
+        </button>
+    </div>
+
+    <div class="collapse d-md-block" id="panelMovilReporte">
+        <div class="d-md-none mb-3">
+        <!-- Celular: Totales por Turno / por Curso / Tomar Asistencia debajo de la fecha -->
+        <div>
+            <div class="row g-2">
+                <div class="col-4">
+                    <button type="button" class="btn btn-outline-primary btn-sm shadow-sm w-100 h-100 btn-accion-movil" data-bs-toggle="modal" data-bs-target="#modalTotalesTurno">
+                        <i class="bi bi-clock d-block mb-1"></i>Totales por Turno
+                    </button>
+                </div>
+                <div class="col-4">
+                    <button type="button" class="btn btn-outline-primary btn-sm shadow-sm w-100 h-100 btn-accion-movil" data-bs-toggle="modal" data-bs-target="#modalTotalesCurso">
+                        <i class="bi bi-people d-block mb-1"></i>Totales por Curso
+                    </button>
+                </div>
+                <div class="col-4">
+                    <a href="{% url 'asistencia_dia' %}" class="btn btn-success btn-sm shadow-sm w-100 h-100 btn-accion-movil">
+                        <i class="bi bi-check2-square d-block mb-1"></i>Tomar Asistencia
+                    </a>
+                </div>
+            </div>
+        </div>
+        </div>
+
     <div class="card shadow-sm border-0 mb-4 bg-light">
         <div class="card-body">
             <form method="GET" action="" id="filterForm" class="row gx-2 gy-3 align-items-center justify-content-center">
+                <!-- Mantiene el día que se está viendo al cambiar un filtro -->
+                <input type="hidden" name="fecha" value="{{ fecha_consulta|date:'Y-m-d' }}">
                 
                 <div class="col-auto">
                     <select name="colegio" class="form-select form-select-sm shadow-sm">
@@ -68,6 +117,15 @@
                 </div>
 
                 <div class="col-auto">
+                    <select name="turno" class="form-select form-select-sm shadow-sm" aria-label="Filtrar por turno">
+                        <option value="">Todos los Turnos</option>
+                        {% for valor, etiqueta in opciones_turno %}
+                            <option value="{{ valor }}" {% if request.GET.turno == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-auto">
                     <select name="comentarios" class="form-select form-select-sm shadow-sm">
                         <option value="">Comentarios: Todos</option>
                         <option value="si" {% if request.GET.comentarios == 'si' %}selected{% endif %}>Con Comentarios</option>
@@ -84,15 +142,14 @@
                 </div>
 
                 <div class="col-auto ms-lg-3">
-                    <button type="submit" class="btn btn-dark btn-sm px-4 shadow-sm">
-                        <i class="bi bi-filter me-1"></i> Filtrar
-                    </button>
-                    <a href="{% url 'reporte_diario' %}" class="btn btn-outline-secondary btn-sm px-3 shadow-sm">
+                    <!-- Sin botón "Filtrar": la lista se actualiza al elegir un filtro -->
+                    <a href="{% url 'reporte_diario' %}?fecha={{ fecha_consulta|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm px-3 shadow-sm">
                         <i class="bi bi-x-circle me-1"></i> Limpiar todo
                     </a>
                 </div>
             </form>
         </div>
+    </div>
     </div>
 
     <div class="card border-0 shadow-sm">
@@ -153,6 +210,65 @@
     </div>
 </div>
 
+
+<!-- Modal: Totales por Turno -->
+<div class="modal fade" id="modalTotalesTurno" tabindex="-1" aria-labelledby="modalTotalesTurnoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalTotalesTurnoLabel">
+                    <i class="bi bi-clock me-2 text-primary"></i>Totales por Turno
+                    <small class="d-block text-muted fw-normal fs-6">{{ fecha_consulta|date:"l d/m/Y"|capfirst }}</small>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm align-middle mb-0 tabla-totales">
+                    <thead><tr><th>Turno</th><th class="text-end">Alumnos</th></tr></thead>
+                    <tbody>
+                        {% for t in totales.turnos %}
+                            <tr><td class="fw-semibold">{{ t.nombre }}</td><td class="text-end">{{ t.cantidad }}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="2" class="text-muted text-center py-3">No hay comensales para este día.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot><tr class="table-light"><th>Total general</th><th class="text-end">{{ totales.total_general }}</th></tr></tfoot>
+                </table>
+                {% include "comedor/_celiacos_reporte.html" with celiacos=totales.celiacos %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Totales por Curso -->
+<div class="modal fade" id="modalTotalesCurso" tabindex="-1" aria-labelledby="modalTotalesCursoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalTotalesCursoLabel">
+                    <i class="bi bi-people me-2 text-primary"></i>Totales por Curso
+                    <small class="d-block text-muted fw-normal fs-6">{{ fecha_consulta|date:"l d/m/Y"|capfirst }}</small>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm align-middle mb-0 tabla-totales">
+                    <thead><tr><th>Curso</th><th class="text-end">Alumnos</th></tr></thead>
+                    <tbody>
+                        {% for c in totales.cursos %}
+                            <tr><td class="fw-semibold">{{ c.nombre }}</td><td class="text-end">{{ c.cantidad }}</td></tr>
+                        {% empty %}
+                            <tr><td colspan="2" class="text-muted text-center py-3">No hay comensales de Primaria o Secundaria para este día.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot><tr class="table-light"><th>Total</th><th class="text-end">{{ totales.total_cursos }}</th></tr></tfoot>
+                </table>
+                {% include "comedor/_celiacos_reporte.html" with celiacos=totales.celiacos_sin_jardin %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Filtrado en tiempo real para Nombre y Curso (Local)
     const inputNombre = document.getElementById('filterNombre');
@@ -181,9 +297,33 @@
 
     inputNombre.addEventListener('keyup', filtrarTabla);
     inputCurso.addEventListener('keyup', filtrarTabla);
+
+    // La flecha del botón "Totales y filtros" gira cuando el panel está abierto.
+    const panelMovil = document.getElementById('panelMovilReporte');
+    if (panelMovil) {
+        const flecha = document.querySelector('[data-bs-target="#panelMovilReporte"] .bi-chevron-down');
+        panelMovil.addEventListener('show.bs.collapse', () => flecha.style.transform = 'rotate(180deg)');
+        panelMovil.addEventListener('hide.bs.collapse', () => flecha.style.transform = '');
+    }
+
+    // Filtros de arriba (colegio, nivel, turno, comentarios, origen): se aplican
+    // apenas se elige una opción, sin tener que tocar "Filtrar".
+    const filterForm = document.getElementById('filterForm');
+    filterForm.querySelectorAll('select').forEach(sel => {
+        sel.addEventListener('change', () => {
+            filterForm.style.opacity = '0.6';  // aviso visual mientras recarga
+            filterForm.submit();
+        });
+    });
 </script>
 
 <style>
+    @media (max-width: 767.98px) {
+        .bloque-fecha { width: 100%; }
+        .titulo-fecha { font-size: 1.3rem; }
+        .btn-accion-movil { font-size: 0.8rem; line-height: 1.2; padding: 0.5rem 0.25rem; }
+        .btn-accion-movil i { font-size: 1.1rem; }
+    }
     .table thead th {
         position: sticky;
         top: 0;

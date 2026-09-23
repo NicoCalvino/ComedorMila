@@ -248,6 +248,13 @@
     <!-- Contenido Principal: portal del padre con dos secciones -->
     {% block content %}
     <div class="container">
+        <!-- Acceso rápido para sumar un alumno (visible siempre) -->
+        <div class="text-center mb-4" style="margin-top: -1.5rem;">
+            <a href="{% url 'crear_cliente' %}?next={% url 'home' %}" class="btn btn-warning btn-lg fw-bold px-5 py-2 shadow-sm" style="font-size: 1.4rem;">
+                <i class="bi bi-plus-lg me-2"></i>Agregar alumno
+            </a>
+        </div>
+
         <div class="row g-4 justify-content-center">
 
             <!-- Sección COMEDOR -->
@@ -278,6 +285,8 @@
 
         </div>
     </div>
+
+    {% include 'main/_instructivos.html' %}
     {% endblock %}
     <footer>
         <div class="container">
@@ -334,4 +343,4 @@
         }
     </script>
 </body>
-</html>
+</html>

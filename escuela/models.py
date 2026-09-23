@@ -21,6 +21,8 @@ class Curso(models.Model):
     curso = models.CharField(max_length=20, null=False)
     colegio = models.ForeignKey(Colegio, on_delete=models.CASCADE, related_name='cursos', null=False)
     nivel = models.CharField(choices=OPCIONES, null=False)
+    # Hora en la que almuerza el curso. Opcional: los cursos existentes quedan sin turno.
+    turno = models.TimeField(null=True, blank=True)
     
     def __str__(self):
         return f"{self.curso} - {self.nivel} - {self.colegio}"

@@ -13,7 +13,107 @@
         </a>
     </div>
 
-    <h2 class="fw-bold mb-4"><i class="bi bi-egg-fried text-warning me-2"></i>Comedor</h2>
+    <h2 class="fw-bold mb-2"><i class="bi bi-egg-fried text-warning me-2"></i>Comedor</h2>
+
+    <!-- Acceso sutil para sumar un alumno -->
+    <div class="mb-3">
+        <a href="{% url 'crear_cliente' %}?next={% url 'comedor_familia' %}" class="btn btn-sm btn-outline-secondary fw-bold rounded-pill px-3">
+            <i class="bi bi-plus-lg me-1"></i>Agregar alumno
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-secondary fw-bold rounded-pill px-3 ms-1" data-bs-toggle="modal" data-bs-target="#modalPreciosComedor">
+            <i class="bi bi-tags me-1"></i>Precios Comedor
+        </button>
+    </div>
+
+    <!-- Modal: precios del comedor -->
+    <style>
+        .tabla-precios { font-size: 0.85rem; }
+        .tabla-precios th, .tabla-precios td { white-space: nowrap; }
+        /* En celular: letra más chica y menos relleno para que entren las 6 columnas */
+        @media (max-width: 575.98px) {
+            .tabla-precios { font-size: 0.7rem; }
+            .tabla-precios th, .tabla-precios td { padding: 0.3rem 0.15rem; }
+            #modalPreciosComedor .modal-body { padding: 0.75rem; }
+        }
+    </style>
+    <div class="modal fade" id="modalPreciosComedor" tabindex="-1" aria-labelledby="modalPreciosComedorLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalPreciosComedorLabel">
+                        <i class="bi bi-tags-fill text-primary me-2"></i>Precios del Comedor
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    {% for t in tarifarios %}
+                        {% if tarifarios|length > 1 %}
+                            <h6 class="fw-bold text-primary {% if not forloop.first %}mt-4{% endif %}">{{ t.colegio.nombre }}</h6>
+                        {% endif %}
+
+                        <p class="text-muted small mb-2"><strong>Plan mensual:</strong> precio por mes según la cantidad de días por semana.</p>
+                        <div class="table-responsive border rounded-3 mb-3">
+                            <table class="table table-sm mb-0 text-center tabla-precios">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Hijo/Días</th>
+                                        <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for nro, precios in t.filas_escuela %}
+                                        <tr>
+                                            <td class="fw-bold bg-light">{{ nro }}°</td>
+                                            {% for precio in precios %}
+                                                <td>${{ precio.precio|floatformat:"0"|intcomma }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-responsive border rounded-3 mb-3">
+                            <table class="table table-sm mb-0 text-center tabla-precios">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-primary">JARDÍN</th>
+                                        <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold bg-light">Precio</td>
+                                        {% for precio in t.precios_jardin %}
+                                            <td>${{ precio.precio|floatformat:"0"|intcomma }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <p class="text-muted small mb-2"><strong>Vale diario:</strong> precio de un almuerzo suelto.</p>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="border rounded-3 p-2 text-center bg-light h-100 d-flex flex-column justify-content-center">
+                                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Vale Jardín</small>
+                                    <span class="fw-bold text-success">$ {{ t.vale_jardin|floatformat:"0"|intcomma }}</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded-3 p-2 text-center bg-light h-100 d-flex flex-column justify-content-center">
+                                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Vale Primaria/Secundaria</small>
+                                    <span class="fw-bold text-success">$ {{ t.vale_escuela|floatformat:"0"|intcomma }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted text-center my-4">Todavía no hay precios cargados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Datos bancarios para transferencia -->
     <div class="card border-0 shadow-sm mb-4 bg-light">

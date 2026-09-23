@@ -1,0 +1,22 @@
+{# Lista de celíacos / sin TACC del día, para los modales de totales del Reporte Diario. #}
+<div class="mt-4">
+    <h6 class="fw-bold text-danger mb-2">
+        <i class="bi bi-exclamation-triangle me-1"></i>Celíacos / sin TACC
+        <span class="badge bg-danger-subtle text-danger ms-1">{{ celiacos|length }}</span>
+    </h6>
+    {% if celiacos %}
+        <ul class="list-group list-group-flush small">
+            {% for c in celiacos %}
+                <li class="list-group-item px-0 d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                        <span class="fw-semibold">{{ c.nombre }}</span>
+                        {% if c.comentarios %}<div class="text-muted fst-italic">{{ c.comentarios }}</div>{% endif %}
+                    </div>
+                    <span class="text-nowrap text-muted">{{ c.curso }} · {{ c.turno }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted small mb-0">No hay celíacos entre los comensales de este día.</p>
+    {% endif %}
+</div>

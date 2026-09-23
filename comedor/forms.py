@@ -11,7 +11,7 @@ class RegistrarPagoAdminComedorForm(forms.Form):
 
     familia = forms.ModelChoiceField(
         queryset=Perfil.objects.filter(
-            clientes__isnull=False, is_superuser=False,
+            clientes__isnull=False, is_superuser=False, is_active=True,
         ).distinct().order_by('last_name', 'first_name'),
         label="Familia",
         empty_label="Elegí una familia…",
@@ -31,6 +31,19 @@ class RegistrarPagoAdminComedorForm(forms.Form):
         label="Comprobante (opcional)",
         help_text="Si te mandaron la foto del pago por WhatsApp, subila acá.",
     )
+    descripcion = forms.CharField(
+        required=False,
+        max_length=150,
+        label="Descripción (opcional)",
+        help_text="Ej.: cuota de agosto, pagó en efectivo la abuela.",
+        widget=forms.Textarea(attrs={
+            'class': 'form-control', 'rows': 2, 'maxlength': '150',
+            'placeholder': 'Detalle del pago…',
+        }),
+    )
+
+    def clean_descripcion(self):
+        return (self.cleaned_data.get('descripcion') or '').strip()
 
     def clean_monto(self):
         monto = self.cleaned_data.get('monto')
@@ -40,15 +53,24 @@ class RegistrarPagoAdminComedorForm(forms.Form):
 
 
 class SolicitudPagoComedorForm(forms.ModelForm):
+    """Padre: informa un pago. Transferencia exige comprobante; efectivo no
+    (queda pendiente hasta que el admin reciba la plata y lo apruebe)."""
+    medio_pago = forms.ChoiceField(
+        choices=SolicitudPagoComedor.MEDIOS_PAGO,
+        required=False,
+        initial=SolicitudPagoComedor.TRANSFERENCIA,
+        widget=forms.RadioSelect,
+        label="¿Cómo pagaste?",
+    )
     comprobante = forms.ImageField(
-        required=True,
+        required=False,
         widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
         label="Comprobante (foto de la transferencia/pago)",
     )
 
     class Meta:
         model = SolicitudPagoComedor
-        fields = ['monto', 'comprobante']
+        fields = ['monto', 'medio_pago', 'comprobante']
         widgets = {
             'monto': forms.NumberInput(attrs={
                 'class': 'form-control', 'min': '1', 'step': '0.01',
@@ -61,6 +83,19 @@ class SolicitudPagoComedorForm(forms.ModelForm):
         if monto is None or monto <= 0:
             raise forms.ValidationError("El monto debe ser mayor a cero.")
         return monto
+
+    def clean_medio_pago(self):
+        # Sin elegir (o formularios viejos que no lo mandan) = transferencia.
+        return self.cleaned_data.get('medio_pago') or SolicitudPagoComedor.TRANSFERENCIA
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('medio_pago') == SolicitudPagoComedor.EFECTIVO:
+            # En efectivo no se guarda comprobante aunque hayan elegido un archivo.
+            cleaned['comprobante'] = None
+        elif not cleaned.get('comprobante') and 'comprobante' not in self.errors:
+            self.add_error('comprobante', "Subí el comprobante de la transferencia.")
+        return cleaned
 
 class PrecioForm(forms.ModelForm):
     class Meta:
@@ -162,4 +197,4 @@ class ValeDiarioForm(forms.ModelForm):
                     f"Este cliente ya tiene un vale cargado para el día {fecha_ingresada}."
                 )
 
-        return fecha_ingresada
+        return fecha_ingresada

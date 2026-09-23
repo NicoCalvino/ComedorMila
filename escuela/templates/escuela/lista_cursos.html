@@ -74,6 +74,7 @@
                         <th class="ps-4">Colegio</th>
                         <th>Escuela / Nivel</th>
                         <th>Curso / Año</th>
+                        <th>Turno</th>
                         <th class="text-end pe-4">Acciones</th>
                     </tr>
                 </thead>
@@ -95,6 +96,13 @@
                             {% endif %}
                         </td>
                         <td class="fw-bold">{{ curso.curso }}°</td>
+                        <td>
+                            {% if curso.turno %}
+                                <span class="badge bg-light text-dark border"><i class="bi bi-clock me-1"></i>{{ curso.turno|time:"H:i" }} hs</span>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
                         <td class="text-end pe-4">
                             <div class="btn-group btn-group-sm" role="group">
                                 <a href="{% url 'editar_curso' curso.id %}" class="btn btn-outline-primary"><i class="bi bi-pencil-square"></i></a>
@@ -104,7 +112,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center py-5 text-muted">No hay registros.</td>
+                        <td colspan="5" class="text-center py-5 text-muted">No hay registros.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -124,7 +132,7 @@
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="alert alert-info py-2 small">
-                        <i class="bi bi-info-circle me-1"></i> El archivo debe tener las columnas: <b>colegio, curso, nivel</b>.
+                        <i class="bi bi-info-circle me-1"></i> El archivo debe tener las columnas: <b>colegio, curso, nivel</b>. Opcional: <b>turno</b> (hora, ej. 12:30).
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Seleccione el archivo (.xlsx)</label>

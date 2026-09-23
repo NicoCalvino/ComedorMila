@@ -54,7 +54,7 @@
             </div>
 
             <p class="text-muted small">
-                Cargá el monto que pagaste y subí el comprobante. El pago queda
+                Cargá el monto que pagaste y, si fue por transferencia, subí el comprobante. El pago queda
                 <strong>pendiente</strong> hasta que el comedor lo apruebe; recién ahí se descuenta del saldo.
             </p>
 
@@ -65,16 +65,37 @@
                     <div class="alert alert-danger">{{ form.non_field_errors }}</div>
                 {% endif %}
 
+                <!-- Medio de pago -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold d-block">{{ form.medio_pago.label }}</label>
+                    <div class="btn-group w-100" role="group" aria-label="Medio de pago">
+                        {% for radio in form.medio_pago %}
+                            <input type="radio" class="btn-check" name="{{ radio.data.name }}" id="{{ radio.id_for_label }}"
+                                   value="{{ radio.data.value }}" autocomplete="off"
+                                   {% if radio.data.selected %}checked{% endif %}>
+                            <label class="btn btn-outline-success fw-bold" for="{{ radio.id_for_label }}">
+                                {% if radio.data.value == 'EFECTIVO' %}<i class="bi bi-cash me-1"></i>{% else %}<i class="bi bi-bank me-1"></i>{% endif %}{{ radio.choice_label }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                    {% if form.medio_pago.errors %}<div class="text-danger small mt-1">{{ form.medio_pago.errors|striptags }}</div>{% endif %}
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">Monto pagado</label>
                     {{ form.monto }}
                     {% if form.monto.errors %}<div class="text-danger small mt-1">{{ form.monto.errors|striptags }}</div>{% endif %}
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-4" id="bloque-comprobante">
                     <label class="form-label fw-bold">{{ form.comprobante.label }}</label>
                     {{ form.comprobante }}
                     {% if form.comprobante.errors %}<div class="text-danger small mt-1">{{ form.comprobante.errors|striptags }}</div>{% endif %}
+                </div>
+
+                <div class="alert alert-warning small mb-4 d-none" id="aviso-efectivo">
+                    <i class="bi bi-cash-coin me-1"></i>
+                    Entregá el efectivo en el comedor. El pago se descuenta del saldo cuando el comedor confirme que lo recibió.
                 </div>
 
                 <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">
@@ -93,6 +114,23 @@
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.querySelector('form');
         if (!form) return;
+
+        // Efectivo: oculta el comprobante (no hace falta) y muestra el aviso.
+        const bloqueComprobante = document.getElementById('bloque-comprobante');
+        const avisoEfectivo = document.getElementById('aviso-efectivo');
+        const inputComprobante = bloqueComprobante.querySelector('input[type="file"]');
+        function actualizarMedio() {
+            const elegido = form.querySelector('input[name="medio_pago"]:checked');
+            const efectivo = elegido && elegido.value === 'EFECTIVO';
+            bloqueComprobante.classList.toggle('d-none', efectivo);
+            avisoEfectivo.classList.toggle('d-none', !efectivo);
+            if (inputComprobante) inputComprobante.required = !efectivo;
+        }
+        form.querySelectorAll('input[name="medio_pago"]').forEach(function (r) {
+            r.addEventListener('change', actualizarMedio);
+        });
+        actualizarMedio();
+
         form.addEventListener('submit', function () {
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn) {

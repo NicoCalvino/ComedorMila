@@ -243,10 +243,25 @@ class SolicitudPagoComedor(models.Model):
         (RECHAZADO, "Rechazado"),
     )
 
+    TRANSFERENCIA = 'TRANSFERENCIA'
+    EFECTIVO = 'EFECTIVO'
+    MEDIOS_PAGO = (
+        (TRANSFERENCIA, "Transferencia"),
+        (EFECTIVO, "Efectivo"),
+    )
+
     usuario = models.ForeignKey(
         Perfil, on_delete=models.CASCADE, related_name='pagos_comedor',
     )
     monto = models.DecimalField(max_digits=12, decimal_places=2)
+    # Efectivo: el padre avisa que pagó en mano, sin comprobante. El admin lo
+    # aprueba cuando efectivamente recibe la plata.
+    medio_pago = models.CharField(
+        max_length=15, choices=MEDIOS_PAGO, default=TRANSFERENCIA,
+    )
+    # Detalle libre que carga el admin (ej. "Cuota de agosto, pagó la abuela").
+    # Se suma al concepto del movimiento, así que la familia lo ve en su cuenta.
+    descripcion = models.CharField(max_length=150, blank=True, default="")
     comprobante = models.ImageField(
         upload_to=comprobante_pago_comedor_upload_to, null=True, blank=True,
     )
@@ -269,6 +284,16 @@ class SolicitudPagoComedor(models.Model):
     def __str__(self):
         return f"Pago comedor {self.monto} de {self.usuario} [{self.estado}]"
 
+    @property
+    def es_efectivo(self):
+        return self.medio_pago == self.EFECTIVO
+
+    def concepto_movimiento(self):
+        concepto = "Pago de comedor (efectivo)" if self.es_efectivo else "Pago de comedor"
+        if self.descripcion:
+            concepto = f"{concepto} - {self.descripcion}"
+        return concepto
+
     def aprobar(self, admin=None):
         """Aprueba el pago: registra el movimiento PAGO (baja la deuda) y marca
         la solicitud como aprobada. Idempotente (solo actúa si está PENDIENTE)."""
@@ -277,7 +302,8 @@ class SolicitudPagoComedor(models.Model):
         cuenta = CuentaComedor.para(self.usuario)
         mov = cuenta.agregar_movimiento(
             MovimientoComedor.PAGO, -self.monto,
-            concepto="Pago de comedor", registrado_por=admin,
+            concepto=self.concepto_movimiento(),
+            registrado_por=admin,
         )
         self.estado = self.APROBADO
         self.resuelto_en = timezone.now()

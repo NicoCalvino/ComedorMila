@@ -79,10 +79,10 @@ class MovimientoComedorAdmin(admin.ModelAdmin):
 
 @admin.register(SolicitudPagoComedor)
 class SolicitudPagoComedorAdmin(admin.ModelAdmin):
-    list_display = ("creado", "usuario", "monto", "estado", "resuelto_en", "resuelto_por")
+    list_display = ("creado", "usuario", "monto", "medio_pago", "estado", "resuelto_en", "resuelto_por")
     list_display_links = ("creado", "usuario")
-    list_filter = ("estado",)
-    search_fields = ("usuario__email",)
+    list_filter = ("estado", "medio_pago")
+    search_fields = ("usuario__email", "descripcion")
     ordering = ("-creado",)
     actions = ("aprobar_pagos", "rechazar_pagos")
 
@@ -118,4 +118,4 @@ class ValeAFavorAdmin(admin.ModelAdmin):
     list_display_links = ("creado", "cliente")
     list_filter = ("usado",)
     search_fields = ("cliente__nombre", "cliente__apellido")
-    ordering = ("-creado",)
+    ordering = ("-creado",)

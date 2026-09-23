@@ -6,48 +6,86 @@
 <div class="container py-5">
     
     <div class="d-flex justify-content-between mb-3">
-        <a href="{% url 'reporte_diario' %}?fecha={{ fecha_consulta|date:'Y-m-d' }}" class="btn btn-link text-muted text-decoration-none">
-            <i class="bi bi-arrow-left me-2"></i>Volver al Reporte
+        <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
+            <i class="bi bi-arrow-left me-2"></i>Volver
         </a>
         <div class="d-flex gap-2">
             <a href="?fecha={{ fecha_consulta|date:'Y-m-d' }}&regenerar=true" 
                class="btn btn-outline-warning shadow-sm"
+               title="Actualizar Lista" aria-label="Actualizar Lista"
                onclick="return confirm('¿Desea actualizar la lista? Esto agregará nuevos alumnos que hayan sacado vales recientemente sin borrar las asistencias ya marcadas.')">
-                <i class="bi bi-arrow-clockwise me-2"></i>Actualizar Lista
+                <i class="bi bi-arrow-clockwise me-md-2"></i><span class="d-none d-md-inline">Actualizar Lista</span>
             </a>
-            <button onclick="window.print()" class="btn btn-dark shadow-sm">
-                <i class="bi bi-printer me-2"></i>Imprimir
+            <button onclick="window.print()" class="btn btn-dark shadow-sm" title="Imprimir" aria-label="Imprimir">
+                <i class="bi bi-printer me-md-2"></i><span class="d-none d-md-inline">Imprimir</span>
             </button>
         </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center gap-3">
-            <h2 class="fw-bold mb-0">
-                <i class="bi bi-check2-square me-2 text-success"></i>
-                Tomar Asistencia: {{ fecha_consulta|date:"l d \d\e F"|capfirst }}
-            </h2>
-        </div>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3 mb-md-4">
+        <h2 class="fw-bold mb-0 titulo-asistencia">
+            <i class="bi bi-check2-square me-2 text-success"></i>
+            <span class="d-none d-md-inline">Tomar Asistencia: {{ fecha_consulta|date:"l d \d\e F"|capfirst }}</span>
+            <!-- Celular: título corto -->
+            <span class="d-md-none">Asistencia · {{ fecha_consulta|date:"D d/m"|capfirst }}</span>
+        </h2>
 
-        <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm" id="contadorAsistencia">
+        <span class="badge bg-primary px-3 py-2 rounded-pill shadow-sm align-self-start align-self-md-center" id="contadorAsistencia">
             Presentes: {{ asistencias_presentes }} / {{ asistencias|length }}
         </span>
     </div>
 
-    <div class="card border-0 shadow-sm mb-4">
+    <!-- Celular: los filtros se despliegan con este botón -->
+    <div class="d-md-none mb-3">
+        <button class="btn btn-outline-dark w-100 d-flex justify-content-between align-items-center" type="button"
+                data-bs-toggle="collapse" data-bs-target="#panelFiltrosAsistencia" aria-expanded="false" aria-controls="panelFiltrosAsistencia">
+            <span><i class="bi bi-sliders me-2"></i>Buscar y filtrar</span>
+            <i class="bi bi-chevron-down"></i>
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 collapse d-md-block" id="panelFiltrosAsistencia">
         <div class="card-body p-3 bg-light">
-            <div class="row g-2">
-                <div class="col-md-6">
+            <div class="row g-2 align-items-center">
+                <div class="col-lg-3">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
                         <input type="text" id="filterNombre" class="form-control border-start-0" placeholder="Buscar por nombre del alumno...">
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <input type="text" id="filterCurso" class="form-control" placeholder="Filtrar por curso...">
+                <div class="col-6 col-md-3 col-lg-2">
+                    <select id="filterTurno" class="form-select" aria-label="Filtrar por turno">
+                        <option value="">Todos los turnos</option>
+                        {% for valor, etiqueta in opciones_turno %}
+                            <option value="{{ valor }}">{{ etiqueta }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="col-md-3 d-flex align-items-center justify-content-center text-muted small">
-                    <i class="bi bi-info-circle me-2"></i> Los cambios se guardan automáticamente.
+                <div class="col-6 col-md-3 col-lg-2">
+                    <select id="filterNivel" class="form-select" aria-label="Filtrar por nivel">
+                        <option value="">Todos los niveles</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3 col-lg-2">
+                    <select id="filterCurso" class="form-select" aria-label="Filtrar por curso">
+                        <option value="">Todos los cursos</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3 col-lg-3">
+                    <div class="input-group">
+                        <select id="filterEstado" class="form-select" aria-label="Filtrar por estado">
+                            <option value="">Todos los estados</option>
+                            <option value="PRESENTE">Presente</option>
+                            <option value="AUSENTE">Ausente</option>
+                        </select>
+                        <!-- Vuelve a aplicar los filtros: saca de la vista a los que ya se marcaron -->
+                        <button type="button" id="btnRefiltrar" class="btn btn-outline-primary" title="Actualizar lista filtrada" aria-label="Actualizar lista filtrada">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12 text-muted small text-lg-end">
+                    <i class="bi bi-info-circle me-1"></i> Los cambios se guardan automáticamente.
                 </div>
             </div>
         </div>
@@ -67,7 +105,11 @@
                     </thead>
                     <tbody>
                         {% for reg in asistencias %}
-                        <tr class="asistencia-row">
+                        <tr class="asistencia-row"
+                            data-nivel="{{ reg.cliente.curso.nivel }}"
+                            data-curso="{{ reg.cliente.curso.curso }}"
+                            data-turno="{{ reg.cliente.curso.turno|time:'H:i' }}"
+                            data-estado="{% if reg.asistio %}PRESENTE{% else %}AUSENTE{% endif %}">
                             <td class="px-4">
                                 <div class="fw-bold text-dark cell-nombre">{{ reg.cliente.nombre }} {{ reg.cliente.apellido }}</div>
                                 <small class="text-muted cell-nivel">{{ reg.cliente.curso.nivel }}</small>
@@ -107,24 +149,70 @@
 </div>
 
 <script>
-    // 1. Lógica de filtrado (reutilizada de tu reporte)
+    // 1. Filtros: nombre (texto) + nivel, curso y estado (selectores)
     const inputNombre = document.getElementById('filterNombre');
-    const inputCurso = document.getElementById('filterCurso');
+    const selTurno = document.getElementById('filterTurno');
+    const selNivel = document.getElementById('filterNivel');
+    const selCurso = document.getElementById('filterCurso');
+    const selEstado = document.getElementById('filterEstado');
+    const filas = Array.from(document.querySelectorAll('.asistencia-row'));
 
     const norm = (text) => text ? text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
 
+    // Opciones de nivel y curso a partir de los alumnos de la lista (ya vienen
+    // ordenados por nivel y curso desde la vista).
+    function opcionesUnicas(valores) {
+        return [...new Set(valores.filter(Boolean))];
+    }
+    function llenarSelect(select, valores, etiquetaTodos) {
+        const actual = select.value;
+        select.innerHTML = '';
+        select.add(new Option(etiquetaTodos, ''));
+        valores.forEach(v => select.add(new Option(v, v)));
+        // Conserva la elección si sigue siendo válida
+        select.value = valores.includes(actual) ? actual : '';
+    }
+    function actualizarCursos() {
+        const nivel = selNivel.value;
+        const cursos = opcionesUnicas(
+            filas.filter(f => !nivel || f.dataset.nivel === nivel).map(f => f.dataset.curso)
+        );
+        llenarSelect(selCurso, cursos, 'Todos los cursos');
+    }
+    llenarSelect(selNivel, opcionesUnicas(filas.map(f => f.dataset.nivel)), 'Todos los niveles');
+    actualizarCursos();
+
     function filtrarTabla() {
         const queryNombre = norm(inputNombre.value);
-        const queryCurso = norm(inputCurso.value);
-        document.querySelectorAll('.asistencia-row').forEach(row => {
+        const turno = selTurno.value;
+        const nivel = selNivel.value;
+        const curso = selCurso.value;
+        const estado = selEstado.value;
+        filas.forEach(row => {
             const nombre = norm(row.querySelector('.cell-nombre').textContent);
-            const curso = norm(row.querySelector('.cell-curso').textContent);
-            row.style.display = (nombre.includes(queryNombre) && curso.includes(queryCurso)) ? '' : 'none';
+            const visible = nombre.includes(queryNombre)
+                && (!turno || row.dataset.turno === turno)
+                && (!nivel || row.dataset.nivel === nivel)
+                && (!curso || row.dataset.curso === curso)
+                && (!estado || row.dataset.estado === estado);
+            row.style.display = visible ? '' : 'none';
         });
     }
 
     inputNombre.addEventListener('keyup', filtrarTabla);
-    inputCurso.addEventListener('keyup', filtrarTabla);
+    selNivel.addEventListener('change', () => { actualizarCursos(); filtrarTabla(); });
+    selTurno.addEventListener('change', filtrarTabla);
+    selCurso.addEventListener('change', filtrarTabla);
+    selEstado.addEventListener('change', filtrarTabla);
+    document.getElementById('btnRefiltrar').addEventListener('click', filtrarTabla);
+
+    // La flecha del botón "Buscar y filtrar" gira cuando el panel está abierto.
+    const panelFiltros = document.getElementById('panelFiltrosAsistencia');
+    if (panelFiltros) {
+        const flecha = document.querySelector('[data-bs-target="#panelFiltrosAsistencia"] .bi-chevron-down');
+        panelFiltros.addEventListener('show.bs.collapse', () => flecha.style.transform = 'rotate(180deg)');
+        panelFiltros.addEventListener('hide.bs.collapse', () => flecha.style.transform = '');
+    }
 
     // 2. AJAX para guardar asistencia sin recargar
     document.querySelectorAll('.switch-asistencia').forEach(switchEl => {
@@ -141,6 +229,9 @@
                 label.className = "badge bg-secondary";
                 label.textContent = "AUSENTE";
             }
+            // Actualiza el estado de la fila para el filtro. No se re-filtra en
+            // el momento para que el alumno no desaparezca de la vista al tocarlo.
+            this.closest('.asistencia-row').dataset.estado = estaPresente ? 'PRESENTE' : 'AUSENTE';
 
             // Llamada al servidor
             fetch(`/comedor/marcar-asistencia/${registroId}/`, {
@@ -164,6 +255,9 @@
 </script>
 
 <style>
+    @media (max-width: 767.98px) {
+        .titulo-asistencia { font-size: 1.3rem; }
+    }
     .table thead th {
         position: sticky;
         top: 0;
@@ -179,7 +273,7 @@
         border-color: #198754;
     }
     @media print {
-        .btn, .card-body.bg-light, .form-check-input, .input-group { display: none !important; }
+        .btn, .card-body.bg-light, .form-check-input, .input-group, .form-select { display: none !important; }
         .table-responsive { overflow: visible !important; max-height: none !important; }
         .form-check-input:checked::after { content: " [X] "; } /* Simular marca en impresión */
     }

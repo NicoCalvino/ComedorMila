@@ -169,7 +169,8 @@ def generar_cargos_mensuales(year, month, registrado_por=None):
     omitidos = []
     total_general = Decimal('0.00')
 
-    padres = Perfil.objects.filter(valemensual__isnull=False).distinct()
+    # Los usuarios desactivados (ej. cuentas duplicadas) no generan cargos.
+    padres = Perfil.objects.filter(valemensual__isnull=False, is_active=True).distinct()
     for usuario in padres:
         movimientos, motivo = generar_cargos_familia(
             usuario, periodo, registrado_por=registrado_por,
@@ -247,7 +248,7 @@ def desvios_del_periodo(year, month):
     plan) después de generar el mes.
     """
     periodo = f"{year:04d}-{month:02d}"
-    usuarios = Perfil.objects.filter(valemensual__isnull=False).distinct()
+    usuarios = Perfil.objects.filter(valemensual__isnull=False, is_active=True).distinct()
     desvios = [d for d in (desvio_familia(u, periodo) for u in usuarios)
                if d['diferencia'] != 0]
     desvios.sort(key=lambda d: -abs(d['diferencia']))

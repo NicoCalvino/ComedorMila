@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 import pandas as pd
 
 from django.core.exceptions import PermissionDenied
+from django.utils.http import url_has_allowed_host_and_scheme
 from users.forms import *
 from users.models import *
 
@@ -35,12 +36,41 @@ def lista_usuarios(request):
         )
 
     if filtro == 'normales':
-        usuarios_query = usuarios_query.filter(is_superuser=False)
+        usuarios_query = usuarios_query.filter(is_superuser=False, is_active=True)
     elif filtro == 'superusuarios':
         usuarios_query = usuarios_query.filter(is_superuser=True)
+    elif filtro == 'desactivados':
+        usuarios_query = usuarios_query.filter(is_active=False)
 
 
     return render(request, 'users/lista_usuarios.html',{"usuarios":usuarios_query})
+
+# Activar / desactivar usuario (ej. cuentas duplicadas). No se borra nada:
+# el usuario no puede entrar y sus alumnos dejan de aparecer en reportes,
+# asistencia y generación de cargos. Se puede volver a activar cuando se quiera.
+@user_passes_test(lambda u: u.is_superuser)
+def cambiar_estado_usuario(request, pk):
+    if request.method != 'POST':
+        return redirect('lista_usuarios')
+    usuario = get_object_or_404(Perfil, pk=pk)
+    volver = request.POST.get('next')
+    if not (volver and url_has_allowed_host_and_scheme(
+            volver, allowed_hosts={request.get_host()}, require_https=request.is_secure())):
+        volver = 'lista_usuarios'
+    if usuario.is_superuser or usuario == request.user:
+        messages.error(request, "No se puede desactivar a un superusuario ni a tu propio usuario.")
+        return redirect(volver)
+    usuario.is_active = not usuario.is_active
+    usuario.save(update_fields=['is_active'])
+    if usuario.is_active:
+        messages.success(request, f"{usuario} fue activado nuevamente.")
+    else:
+        messages.success(
+            request,
+            f"{usuario} fue desactivado: ya no puede ingresar y sus alumnos no aparecen "
+            f"en reportes, asistencia ni en la generación de cargos.",
+        )
+    return redirect(volver)
 
 # Archivo Subida Usuarios
 @user_passes_test(lambda u: u.is_superuser)

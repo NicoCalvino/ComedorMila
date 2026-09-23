@@ -1,0 +1,302 @@
+{# Instructivos para las familias: botones en el Home + una ventana emergente por instructivo. #}
+<style>
+    .instructivos-titulo { font-weight: 900; color: #333; }
+    .btn-instructivo {
+        background: #fff;
+        border: 1px solid #e3e8ee;
+        border-radius: 12px;
+        padding: 0.9rem 0.75rem;
+        font-weight: 700;
+        color: #333;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        text-align: center;
+        line-height: 1.2;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-instructivo i { font-size: 1.6rem; }
+    .btn-instructivo:hover, .btn-instructivo:focus-visible {
+        transform: translateY(-3px);
+        border-color: var(--azul-mallinckrodt);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.07);
+    }
+
+    .modal-instructivo .modal-content { border: 0; border-radius: 1rem; background: #f4f7f9; }
+    .modal-instructivo .intro {
+        background: #fff;
+        border-left: 5px solid var(--azul-mallinckrodt);
+        border-radius: 0.75rem;
+        padding: 0.8rem 1rem;
+        color: #4b5563;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    .modal-instructivo .pasos { list-style: none; padding: 0; margin: 0; counter-reset: paso; }
+    .modal-instructivo .pasos li {
+        counter-increment: paso;
+        background: #fff;
+        border-radius: 0.75rem;
+        padding: 0.7rem 0.9rem 0.7rem 3.2rem;
+        margin-bottom: 0.5rem;
+        position: relative;
+        color: #333;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .modal-instructivo .pasos li::before {
+        content: counter(paso);
+        position: absolute;
+        left: 0.8rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1.8rem;
+        height: 1.8rem;
+        border-radius: 50%;
+        background: var(--azul-mallinckrodt);
+        color: #fff;
+        font-weight: 900;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-instructivo .subtitulo {
+        font-size: 0.8rem;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--azul-mallinckrodt);
+        margin: 1rem 0 0.5rem;
+    }
+    .modal-instructivo .nota {
+        background: #fdf6dc;
+        border: 1px solid #f5d565;
+        border-radius: 0.75rem;
+        padding: 0.8rem 1rem;
+        color: #5c4a00;
+        font-weight: 600;
+        margin-top: 1rem;
+    }
+    @media (max-width: 575.98px) {
+        .modal-instructivo .pasos li { font-size: 0.92rem; }
+    }
+</style>
+
+<div class="container mt-5">
+    <h4 class="instructivos-titulo text-center mb-1"><i class="bi bi-question-circle text-primary me-2"></i>¿Cómo se usa?</h4>
+    <p class="text-muted text-center small mb-4">Tocá un tema para ver el paso a paso.</p>
+
+    <div class="row g-3 justify-content-center">
+        <div class="col-6 col-md-4 col-lg-3">
+            <button type="button" class="btn-instructivo" data-bs-toggle="modal" data-bs-target="#instructivoAlumnos">
+                <i class="bi bi-person-plus text-primary"></i>Agregar alumnos
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button type="button" class="btn-instructivo" data-bs-toggle="modal" data-bs-target="#instructivoSaldoKiosco">
+                <i class="bi bi-wallet2 text-success"></i>Cargar saldo del Kiosco
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button type="button" class="btn-instructivo" data-bs-toggle="modal" data-bs-target="#instructivoMensual">
+                <i class="bi bi-calendar-week text-warning"></i>Anotar en Comedor mensual
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button type="button" class="btn-instructivo" data-bs-toggle="modal" data-bs-target="#instructivoDiario">
+                <i class="bi bi-calendar-plus text-warning"></i>Anotar en Comedor diario
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button type="button" class="btn-instructivo" data-bs-toggle="modal" data-bs-target="#instructivoPagoComedor">
+                <i class="bi bi-cash-coin text-success"></i>Pagar el Comedor
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button type="button" class="btn-instructivo" data-bs-toggle="modal" data-bs-target="#instructivoInasistencias">
+                <i class="bi bi-calendar-x text-danger"></i>Avisar inasistencias
+            </button>
+        </div>
+        <div class="col-6 col-md-4 col-lg-3">
+            <button type="button" class="btn-instructivo" data-bs-toggle="modal" data-bs-target="#instructivoApp">
+                <i class="bi bi-phone text-primary"></i>Instalar la app en el celular
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 1. Agregar alumnos -->
+<div class="modal fade modal-instructivo" id="instructivoAlumnos" tabindex="-1" aria-labelledby="instructivoAlumnosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="instructivoAlumnosLabel"><i class="bi bi-person-plus text-primary me-2"></i>Agregar a tus alumnos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="intro">Cargá a cada hijo/a una sola vez. Después aparecen en Comedor y en Kiosco.</div>
+                <ol class="pasos">
+                    <li>Tocá <strong>“Agregar alumno”</strong>. Lo encontrás en el inicio (botón amarillo), en <strong>Comedor</strong> o en <strong>Kiosco</strong>.</li>
+                    <li>Completá <strong>Nombre</strong>, <strong>Apellido</strong>, <strong>Colegio</strong> y <strong>Curso / Año</strong>.</li>
+                    <li>Tocá <strong>“Guardar alumno”</strong>. Volvés a la pantalla desde donde empezaste.</li>
+                </ol>
+                <div class="nota">Repetí estos pasos por cada hijo/a. Si un alumno no tiene tarjeta asignada para el kiosco, pedísela al comedor.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Cargar saldo del Kiosco -->
+<div class="modal fade modal-instructivo" id="instructivoSaldoKiosco" tabindex="-1" aria-labelledby="instructivoSaldoKioscoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="instructivoSaldoKioscoLabel"><i class="bi bi-wallet2 text-success me-2"></i>Cargar saldo para el Kiosco</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="intro">Con este saldo tus hijos compran en el kiosco con su tarjeta.</div>
+                <ol class="pasos">
+                    <li>En el menú de arriba, tocá <strong>“Pago Kiosco”</strong>.</li>
+                    <li>Tocá <strong>“Nueva Solicitud”</strong>.</li>
+                    <li>Escribí el <strong>monto a cargar</strong> en la fila de cada alumno.</li>
+                    <li>Subí el <strong>comprobante de transferencia</strong> (foto o PDF).</li>
+                    <li>Tocá <strong>“Enviar Solicitud”</strong>.</li>
+                </ol>
+                <div class="nota">La carga queda <strong>pendiente</strong> hasta que el comedor apruebe el comprobante. Ahí se acredita el saldo.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Comedor mensual -->
+<div class="modal fade modal-instructivo" id="instructivoMensual" tabindex="-1" aria-labelledby="instructivoMensualLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="instructivoMensualLabel"><i class="bi bi-calendar-week text-warning me-2"></i>Anotar en Comedor mensual</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="intro">El plan mensual son los días fijos de la semana que tu hijo/a come en el comedor.</div>
+                <ol class="pasos">
+                    <li>En el inicio, tocá la tarjeta <strong>“Comedor”</strong>.</li>
+                    <li>En el alumno, columna <strong>“Plan Mensual”</strong>, tocá <strong>“Cargar Plan Mensual”</strong>.</li>
+                    <li>Marcá los <strong>días fijos</strong> (lunes a viernes) con los interruptores.</li>
+                    <li>Si hace falta, escribí un <strong>comentario</strong> (dieta, sin TACC, etc.).</li>
+                    <li>Tocá <strong>“Guardar Plan Mensual”</strong>.</li>
+                </ol>
+                <div class="nota">El <strong>costo mensual</strong> se calcula solo según los días elegidos. Podés cambiarlo cuando quieras con <strong>“Editar plan”</strong>. Los precios están en Comedor, botón <strong>“Precios Comedor”</strong>.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Comedor diario -->
+<div class="modal fade modal-instructivo" id="instructivoDiario" tabindex="-1" aria-labelledby="instructivoDiarioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="instructivoDiarioLabel"><i class="bi bi-calendar-plus text-warning me-2"></i>Anotar en Comedor diario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="intro">Usá el vale diario para anotar un día suelto, sin plan fijo.</div>
+                <ol class="pasos">
+                    <li>En el inicio, tocá la tarjeta <strong>“Comedor”</strong>.</li>
+                    <li>En el alumno, columna <strong>“Inscripciones Diarias”</strong>, tocá <strong>“Cargar día”</strong>.</li>
+                    <li>Elegí la <strong>fecha</strong> de la comida.</li>
+                    <li>Subí el <strong>comprobante de pago</strong> (opcional: registra el pago automáticamente).</li>
+                    <li>Tocá <strong>“Guardar Día”</strong>.</li>
+                </ol>
+                <div class="nota">Para cancelar un día, tocá <strong>“Cancelar”</strong> junto al día en la lista de inscripciones pendientes.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. Pago del Comedor -->
+<div class="modal fade modal-instructivo" id="instructivoPagoComedor" tabindex="-1" aria-labelledby="instructivoPagoComedorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="instructivoPagoComedorLabel"><i class="bi bi-cash-coin text-success me-2"></i>Cargar un pago del Comedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="intro">Registrá lo que pagaste para bajar el saldo pendiente del comedor.</div>
+                <ol class="pasos">
+                    <li>En el menú de arriba, tocá <strong>“Pago Comedor”</strong> (o en Comedor, recuadro <strong>“Saldo Comedor”</strong>, tocá <strong>“Registrar pago”</strong>).</li>
+                    <li>Elegí cómo pagaste: <strong>Transferencia</strong> o <strong>Efectivo</strong>.</li>
+                    <li>Escribí el <strong>monto pagado</strong>.</li>
+                    <li>Si fue por transferencia, subí el <strong>comprobante</strong>. En efectivo no hace falta.</li>
+                    <li>Tocá <strong>“Enviar pago”</strong>.</li>
+                </ol>
+                <div class="nota">El pago queda <strong>pendiente</strong> hasta que el comedor lo apruebe (en efectivo, cuando reciba el dinero). Recién ahí se descuenta del saldo.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 6. Avisar inasistencias -->
+<div class="modal fade modal-instructivo" id="instructivoInasistencias" tabindex="-1" aria-labelledby="instructivoInasistenciasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="instructivoInasistenciasLabel"><i class="bi bi-calendar-x text-danger me-2"></i>Avisar inasistencias</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="intro">Si tu hijo/a no va a comer, avisá el día: con plan de 5 días se devuelve dinero a tu cuenta; con plan de 1 a 4 días queda un almuerzo a favor.</div>
+                <ol class="pasos">
+                    <li>En el inicio, tocá la tarjeta <strong>“Comedor”</strong>.</li>
+                    <li>En el alumno, tocá el botón <strong>“Avisar inasistencias”</strong>.</li>
+                    <li>Elegí el <strong>día</strong> (solo días de su plan, de hoy en adelante).</li>
+                    <li>¿Son varios? Tocá <strong>“Agregar otro día”</strong> y sumalos.</li>
+                    <li>Tocá <strong>“Avisar inasistencias”</strong> para confirmar.</li>
+                </ol>
+                <div class="subtitulo">Si tenés un almuerzo a favor</div>
+                <ol class="pasos">
+                    <li>En <strong>Comedor</strong>, debajo del alumno, mirá <strong>“Almuerzos a favor”</strong>.</li>
+                    <li>Elegí la fecha y tocá <strong>“Usar”</strong>: ese día va sin costo.</li>
+                </ol>
+                <div class="nota">El aviso de hoy compensa solo hasta las <strong>9:00</strong>. Más tarde queda registrado igual, pero sin compensación. Los días futuros siempre compensan.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 7. Instalar la app -->
+<div class="modal fade modal-instructivo" id="instructivoApp" tabindex="-1" aria-labelledby="instructivoAppLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="instructivoAppLabel"><i class="bi bi-phone text-primary me-2"></i>Instalar la app en el celular</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="intro">Podés dejar el sitio como una app con el ícono del colegio, sin descargar nada de la tienda.</div>
+                <div class="subtitulo mt-0">En Android (Chrome)</div>
+                <ol class="pasos">
+                    <li>Entrá a <strong>www.comedormila.com.ar</strong>.</li>
+                    <li>Tocá el menú <strong>⋮</strong> (arriba a la derecha).</li>
+                    <li>Tocá <strong>“Agregar a la pantalla principal”</strong> (o <strong>“Instalar app”</strong>).</li>
+                    <li>Confirmá tocando <strong>“Agregar”</strong>.</li>
+                </ol>
+                <div class="subtitulo">En iPhone (Safari)</div>
+                <ol class="pasos">
+                    <li>Entrá a <strong>www.comedormila.com.ar</strong>.</li>
+                    <li>Tocá el botón <strong>Compartir</strong> (cuadrado con flecha hacia arriba).</li>
+                    <li>Tocá <strong>“Agregar a inicio”</strong>.</li>
+                    <li>Tocá <strong>“Agregar”</strong> arriba a la derecha.</li>
+                </ol>
+                <div class="nota">Queda un ícono en tu celular para entrar directo, como cualquier otra app.</div>
+            </div>
+        </div>
+    </div>
+</div>
