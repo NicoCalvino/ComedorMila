@@ -704,8 +704,9 @@ def nombre_curso_totales(curso):
 
 
 def totales_reporte(lista_asistencia):
-    """Totales del reporte diario: por turno, por curso (sin Jardín y con
-    Secundaria agrupada como "SEC") y la lista de celíacos del día."""
+    """Totales del reporte diario: por turno (el total general sin Jardín), por
+    curso (sin Jardín y con Secundaria agrupada como "SEC") y la lista de
+    celíacos del día."""
     etiquetas_turno = dict(opciones_turno())
 
     por_turno = {}
@@ -746,7 +747,8 @@ def totales_reporte(lista_asistencia):
 
     return {
         'turnos': turnos,
-        'total_general': len(lista_asistencia),
+        # Los turnos muestran también a Jardín, pero el total general no los suma.
+        'total_general': sum(1 for i in lista_asistencia if i['cliente'].curso.nivel != 'JARDIN'),
         'cursos': cursos,
         'total_cursos': sum(c['cantidad'] for c in cursos),
         'celiacos': celiacos,

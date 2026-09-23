@@ -232,7 +232,7 @@
                             <tr><td colspan="2" class="text-muted text-center py-3">No hay comensales para este día.</td></tr>
                         {% endfor %}
                     </tbody>
-                    <tfoot><tr class="table-light"><th>Total general</th><th class="text-end">{{ totales.total_general }}</th></tr></tfoot>
+                    <tfoot><tr class="table-light"><th>Total general <small class="text-muted fw-normal">(sin Jardín)</small></th><th class="text-end">{{ totales.total_general }}</th></tr></tfoot>
                 </table>
                 {% include "comedor/_celiacos_reporte.html" with celiacos=totales.celiacos %}
             </div>
