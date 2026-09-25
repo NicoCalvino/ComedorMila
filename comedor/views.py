@@ -756,6 +756,12 @@ def totales_reporte(lista_asistencia):
     }
 
 
+def alumnos_con_inasistencia(fecha):
+    """IDs de alumnos cuyos padres avisaron que no van ese día (con o sin
+    compensación). No se cuentan en el reporte diario ni en la asistencia."""
+    return Inasistencia.objects.filter(fecha=fecha).values_list('cliente_id', flat=True)
+
+
 def parsear_filtro_turno(valor):
     """'HH:MM' del filtro -> datetime.time, o None si viene vacío o mal formado."""
     try:
@@ -831,6 +837,10 @@ class ReporteDiarioView(SuperUserRequiredMixin,TemplateView):
         # Fuera los alumnos de usuarios desactivados (cuentas duplicadas, etc.)
         q_mensual &= Q(cliente__usuario__is_active=True)
         q_diario &= Q(cliente__usuario__is_active=True)
+        # Fuera los alumnos con inasistencia avisada para ese día (tampoco suman en los totales)
+        ausentes = alumnos_con_inasistencia(fecha_consulta)
+        q_mensual &= ~Q(cliente_id__in=ausentes)
+        q_diario &= ~Q(cliente_id__in=ausentes)
 
         if filtro_colegio:
             q_mensual &= Q(cliente__colegio_id=filtro_colegio)
@@ -909,11 +919,20 @@ class AsistenciaView(SuperUserRequiredMixin,TemplateView):
             fecha_consulta += timedelta(days=1)
 
         # 2. Verificar si ya existen registros para este día
-        asistencias = Asistencia.objects.filter(fecha=fecha_consulta, cliente__usuario__is_active=True).select_related('cliente__curso')
+        # (sin los alumnos con inasistencia avisada, aunque ya tuvieran registro
+        # creado de antes del aviso)
+        def asistencias_del_dia():
+            return Asistencia.objects.filter(
+                fecha=fecha_consulta, cliente__usuario__is_active=True,
+            ).exclude(
+                cliente_id__in=alumnos_con_inasistencia(fecha_consulta),
+            ).select_related('cliente__curso')
+
+        asistencias = asistencias_del_dia()
 
         if not asistencias.exists() or self.request.GET.get('regenerar') == 'true':
             self.generar_asistencias(fecha_consulta)
-            asistencias = Asistencia.objects.filter(fecha=fecha_consulta, cliente__usuario__is_active=True).select_related('cliente__curso')
+            asistencias = asistencias_del_dia()
 
         # Ordenar para la lista
         asistencias = asistencias.order_by('cliente__curso__nivel', 'cliente__curso__curso', 'cliente__nombre')
@@ -944,8 +963,8 @@ class AsistenciaView(SuperUserRequiredMixin,TemplateView):
         diarios = ValeDiario.objects.filter(fecha=fecha, cancelado=False, cliente__usuario__is_active=True).values_list('cliente_id', flat=True)
         alumnos_del_dia.extend(list(diarios))
 
-        # Limpiar duplicados (por si tiene ambos vales)
-        alumnos_unicos = set(alumnos_del_dia)
+        # Limpiar duplicados (por si tiene ambos vales) y sacar a los que avisaron inasistencia
+        alumnos_unicos = set(alumnos_del_dia) - set(alumnos_con_inasistencia(fecha))
 
         # Crear registros en Asistencia (usando get_or_create para no duplicar si es regeneración)
         for cliente_id in alumnos_unicos:
@@ -1062,8 +1081,11 @@ def marcar_asistencia_ajax(request, pk):
 
             # Calculamos cuántos hay presentes hoy para actualizar el contador del HTML
             total_presentes = Asistencia.objects.filter(
-                fecha=asistencia.fecha, 
-                asistio=True
+                fecha=asistencia.fecha,
+                asistio=True,
+                cliente__usuario__is_active=True,
+            ).exclude(
+                cliente_id__in=alumnos_con_inasistencia(asistencia.fecha),
             ).count()
 
             return JsonResponse({
