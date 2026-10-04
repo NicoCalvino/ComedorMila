@@ -1,3 +1,4 @@
+from datetime import date
 from django import forms
 from kiosco.models import *
 
@@ -65,3 +66,46 @@ class TarjetasMasivoForm(forms.Form):
 #         widgets = {
 #             'saldo':forms.NumberInput(attrs={'class':'form-control'}),
 #         }
+
+
+class RecaudacionEfectivoForm(forms.ModelForm):
+    class Meta:
+        model = RecaudacionEfectivo
+        fields = ["fecha", "monto", "observaciones"]
+        labels = {
+            "fecha": "Fecha",
+            "monto": "Total en efectivo",
+            "observaciones": "Observaciones (opcional)",
+        }
+        widgets = {
+            "fecha": forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+            "monto": forms.NumberInput(attrs={
+                "class": "form-control", "min": "0.01", "step": "0.01",
+                "max": "99999999.99", "placeholder": "0,00",
+            }),
+            "observaciones": forms.TextInput(attrs={
+                "class": "form-control", "maxlength": "200",
+                "placeholder": "Ej.: faltó cambio, se cerró temprano…",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["fecha"].widget.attrs["max"] = date.today().isoformat()
+        if not self.instance.pk and not self.is_bound:
+            self.initial.setdefault("fecha", date.today())
+
+    def clean_fecha(self):
+        fecha = self.cleaned_data.get("fecha")
+        if fecha and fecha > date.today():
+            raise forms.ValidationError("No se puede cargar la recaudación de un día que todavía no pasó.")
+        return fecha
+
+    def clean_monto(self):
+        monto = self.cleaned_data.get("monto")
+        if monto is not None and monto > RecaudacionEfectivo.MONTO_MAXIMO:
+            raise forms.ValidationError("El monto es demasiado alto. Revisá que esté bien escrito.")
+        return monto
+
+    def clean_observaciones(self):
+        return (self.cleaned_data.get("observaciones") or "").strip()

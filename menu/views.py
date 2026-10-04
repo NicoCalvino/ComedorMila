@@ -148,22 +148,36 @@ class MenuCalendarView(LoginRequiredMixin, ListView):
     template_name = "menu/calendar_view.html"
     context_object_name = "menues"
 
+    # Cantidad de semanas visibles: se puede ampliar con ?semanas=N
+    SEMANAS_DEFAULT = 4
+    SEMANAS_PASO = 1
+    SEMANAS_MAX = 12
+
+    def get_cantidad_semanas(self):
+        try:
+            n = int(self.request.GET.get("semanas", self.SEMANAS_DEFAULT))
+        except (TypeError, ValueError):
+            n = self.SEMANAS_DEFAULT
+        return max(1, min(n, self.SEMANAS_MAX))
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        queryset = self.get_queryset()
+        cantidad_semanas = self.get_cantidad_semanas()
+        hoy = datetime.today().date()
+        inicio_base = hoy - timedelta(days=hoy.weekday())
+        fin_rango = inicio_base + timedelta(weeks=cantidad_semanas)
+        # Solo traemos los menús del rango visible
+        queryset = self.get_queryset().filter(fecha__gte=inicio_base, fecha__lt=fin_rango)
 
         # Traemos todos los feriados de una vez para evitar consultas en el bucle
-        feriados_dict = {f.fecha: f for f in Feriado.objects.all()}
+        feriados_dict = {f.fecha: f for f in Feriado.objects.filter(fecha__gte=inicio_base, fecha__lt=fin_rango)}
         # Traemos todos los menús del rango de fechas necesario
         menus_dict = {m.fecha: m for m in queryset}
 
-        hoy = datetime.today().date()
-        inicio_base = hoy - timedelta(days=hoy.weekday())
-        
         resultado = []
 
-        # Iteramos por las 3 semanas
-        for semana_idx in range(4):
+        # Iteramos por la cantidad de semanas pedida
+        for semana_idx in range(cantidad_semanas):
             semana_actual = []
             inicio_semana = inicio_base + timedelta(weeks=semana_idx)
             
@@ -179,7 +193,10 @@ class MenuCalendarView(LoginRequiredMixin, ListView):
             resultado.append(semana_actual)
         
         context['semanas'] = resultado
-        context['hoy'] = datetime.today().date()
+        context['hoy'] = hoy
+        context['cantidad_semanas'] = cantidad_semanas
+        context['semanas_mas'] = min(cantidad_semanas + self.SEMANAS_PASO, self.SEMANAS_MAX) if cantidad_semanas < self.SEMANAS_MAX else None
+        context['semanas_menos'] = max(cantidad_semanas - self.SEMANAS_PASO, self.SEMANAS_DEFAULT) if cantidad_semanas > self.SEMANAS_DEFAULT else None
 
         # Bloque extra de Menú Jardín: solo si el padre tiene al menos un hijo
         # cuyo curso es de nivel JARDIN. Se muestra después de las 4 semanas.

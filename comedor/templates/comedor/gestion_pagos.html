@@ -44,7 +44,7 @@
                                     <span class="badge bg-warning text-dark"><i class="bi bi-cash me-1"></i>Efectivo</span>
                                 {% elif p.comprobante %}
                                     <a href="{{ p.comprobante.url }}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">
-                                        <i class="bi bi-image me-1"></i>Ver
+                                        <i class="bi {% if p.comprobante.name|lower|slice:'-4:' == '.pdf' %}bi-file-earmark-pdf{% else %}bi-image{% endif %} me-1"></i>Ver
                                     </a>
                                 {% else %}
                                     <span class="text-muted small">—</span>

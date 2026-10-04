@@ -19,4 +19,9 @@ class TarjetaAdmin(admin.ModelAdmin):
     readonly_fields = ("fecha_activacion",)
 
 
-    
+@admin.register(RecaudacionEfectivo)
+class RecaudacionEfectivoAdmin(admin.ModelAdmin):
+    list_display = ("fecha", "monto", "observaciones", "cargado_por")
+    date_hierarchy = "fecha"
+    ordering = ("-fecha",)
+    readonly_fields = ("cargado_por", "creado", "modificado")

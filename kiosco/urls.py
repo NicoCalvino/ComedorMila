@@ -14,5 +14,9 @@ urlpatterns = [
     # path("ver_tarjeta/<int:pk>/asociar/<int:cliente_pk>/", asociar_tarjeta_confirmar, name="asociar_tarjeta_confirmar"),
     path('ver_tarjeta/<int:pk>/cambiar-estado/', cambiar_estado_tarjeta, name='cambiar_estado_tarjeta'),
     path('ver_tarjeta/<int:pk>/cambiar-estado-alumno/', cambiar_estado_tarjeta_alumno, name='cambiar_estado_tarjeta_alumno'),
+
+    path("recaudacion_efectivo", recaudacion_efectivo, name="recaudacion_efectivo"),
+    path("recaudacion_efectivo/<int:pk>/editar", editar_recaudacion_efectivo, name="editar_recaudacion_efectivo"),
+    path("recaudacion_efectivo/<int:pk>/eliminar", eliminar_recaudacion_efectivo, name="eliminar_recaudacion_efectivo"),
     # path("eliminar_tarjeta/<int:pk>",eliminar_tarjeta, name="eliminar_tarjeta"),
 ]

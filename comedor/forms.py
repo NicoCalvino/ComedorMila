@@ -3,6 +3,7 @@ from comedor.models import *
 from users.models import Perfil
 from datetime import date
 from decimal import Decimal
+from comedor.validators import validar_comprobante, ACCEPT_COMPROBANTE
 
 
 class RegistrarPagoAdminComedorForm(forms.Form):
@@ -25,11 +26,12 @@ class RegistrarPagoAdminComedorForm(forms.Form):
             'placeholder': 'Monto pagado',
         }),
     )
-    comprobante = forms.ImageField(
+    comprobante = forms.FileField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        validators=[validar_comprobante],
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': ACCEPT_COMPROBANTE}),
         label="Comprobante (opcional)",
-        help_text="Si te mandaron la foto del pago por WhatsApp, subila acá.",
+        help_text="Si te mandaron la foto o el PDF del pago por WhatsApp, subilo acá.",
     )
     descripcion = forms.CharField(
         required=False,
@@ -62,10 +64,11 @@ class SolicitudPagoComedorForm(forms.ModelForm):
         widget=forms.RadioSelect,
         label="¿Cómo pagaste?",
     )
-    comprobante = forms.ImageField(
+    comprobante = forms.FileField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
-        label="Comprobante (foto de la transferencia/pago)",
+        validators=[validar_comprobante],
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': ACCEPT_COMPROBANTE}),
+        label="Comprobante (foto o PDF de la transferencia/pago)",
     )
 
     class Meta:
@@ -159,6 +162,13 @@ class ValeMensualForm(forms.ModelForm):
         }
         
 class ValeDiarioForm(forms.ModelForm):
+    comprobante = forms.FileField(
+        required=False,
+        validators=[validar_comprobante],
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': ACCEPT_COMPROBANTE}),
+        label="Comprobante",
+    )
+
     class Meta:
         model = ValeDiario
         fields = ['fecha', 'comprobante','comentarios'] # Reemplaza con los nombres reales de tus campos

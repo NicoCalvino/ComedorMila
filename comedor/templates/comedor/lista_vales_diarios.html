@@ -122,7 +122,7 @@
                             <td class="text-center">
                                 {% if vale.comprobante %}
                                     <a href="{{ vale.comprobante.url }}" target="_blank" class="text-decoration-none text-primary">
-                                        <i class="bi bi-image fs-5"></i>
+                                        <i class="bi {% if vale.comprobante.name|lower|slice:'-4:' == '.pdf' %}bi-file-earmark-pdf{% else %}bi-image{% endif %} fs-5"></i>
                                     </a>
                                 {% else %}
                                     <span class="text-muted">-</span>

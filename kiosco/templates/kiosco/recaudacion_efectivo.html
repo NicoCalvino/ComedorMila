@@ -1,0 +1,156 @@
+{% extends 'main/index.html' %}
+{% load humanize %}
+
+{% block titulo %}<title>Comedor Colegio Mallinckrodt - Recaudación en efectivo</title>{% endblock %}
+
+{% block Bienvenida %}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-11 col-lg-9">
+
+      <!-- Encabezado -->
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+          <h2 class="fw-bold mb-0" style="color: #333;">💵 Recaudación en efectivo</h2>
+          <p class="text-muted mb-0 small">Total cobrado en efectivo en el kiosco, día por día.</p>
+        </div>
+        <a href="{% url 'home_kiosco' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+          <i class="bi bi-arrow-left"></i> Volver a Kiosco
+        </a>
+      </div>
+
+      {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} shadow-sm py-2" role="alert">
+        {{ message }}
+      </div>
+      {% endfor %}
+
+      <!-- Formulario de carga / edición -->
+      <div class="card shadow-sm border-0 mb-4 {% if editando %}border-start border-4 border-warning{% endif %}">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-3">
+            {% if editando %}
+              <i class="bi bi-pencil-square text-warning me-2"></i>Editar recaudación del {{ editando.fecha|date:"d/m/Y" }}
+            {% else %}
+              <i class="bi bi-plus-circle text-success me-2"></i>Cargar recaudación
+            {% endif %}
+          </h5>
+
+          {% if existente %}
+          <div class="alert alert-warning py-2 small">
+            El {{ existente.fecha|date:"d/m/Y" }} ya tiene cargados $ {{ existente.monto|floatformat:2|intcomma }}.
+            <a href="{% url 'editar_recaudacion_efectivo' existente.pk %}" class="alert-link">Editar esa fecha</a>
+          </div>
+          {% endif %}
+
+          <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-3 align-items-start">
+              <div class="col-sm-4">
+                <label for="{{ form.fecha.id_for_label }}" class="form-label fw-semibold small">{{ form.fecha.label }}</label>
+                {{ form.fecha }}
+                {% if form.fecha.errors %}<div class="text-danger small mt-1">{{ form.fecha.errors|striptags }}</div>{% endif %}
+              </div>
+              <div class="col-sm-4">
+                <label for="{{ form.monto.id_for_label }}" class="form-label fw-semibold small">{{ form.monto.label }}</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  {{ form.monto }}
+                </div>
+                {% if form.monto.errors %}<div class="text-danger small mt-1">{{ form.monto.errors|striptags }}</div>{% endif %}
+              </div>
+              <div class="col-sm-4">
+                <label for="{{ form.observaciones.id_for_label }}" class="form-label fw-semibold small">{{ form.observaciones.label }}</label>
+                {{ form.observaciones }}
+                {% if form.observaciones.errors %}<div class="text-danger small mt-1">{{ form.observaciones.errors|striptags }}</div>{% endif %}
+              </div>
+            </div>
+            {% if form.non_field_errors %}<div class="text-danger small mt-2">{{ form.non_field_errors|striptags }}</div>{% endif %}
+            <div class="d-flex gap-2 mt-3">
+              <button type="submit" class="btn {% if editando %}btn-warning{% else %}btn-success{% endif %} px-4">
+                <i class="bi bi-check-lg me-1"></i>{% if editando %}Guardar cambios{% else %}Guardar{% endif %}
+              </button>
+              {% if editando %}
+              <a href="{% url 'recaudacion_efectivo' %}?mes={{ mes_param }}" class="btn btn-outline-secondary">Cancelar</a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Navegación por mes + total -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <div class="btn-group shadow-sm" role="group">
+          <a href="?mes={{ mes_anterior }}" class="btn btn-sm btn-outline-dark rounded-start-pill" title="Mes anterior">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+          <span class="btn btn-sm btn-dark text-capitalize px-3" style="pointer-events: none;">{{ mes_actual|date:"F Y" }}</span>
+          {% if mes_siguiente %}
+          <a href="?mes={{ mes_siguiente }}" class="btn btn-sm btn-outline-dark rounded-end-pill" title="Mes siguiente">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+          {% else %}
+          <span class="btn btn-sm btn-outline-dark rounded-end-pill disabled"><i class="bi bi-chevron-right"></i></span>
+          {% endif %}
+        </div>
+        <div class="text-end">
+          <span class="text-muted small me-1">Total del mes</span>
+          <span class="fs-5 fw-bold text-success">$ {{ total_mes|floatformat:2|intcomma }}</span>
+        </div>
+      </div>
+
+      <!-- Lista del mes -->
+      <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Fecha</th>
+                <th class="text-end">Monto</th>
+                <th class="d-none d-md-table-cell">Observaciones</th>
+                <th class="d-none d-lg-table-cell">Cargó</th>
+                <th class="text-end pe-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in registros %}
+              <tr {% if editando and editando.pk == r.pk %}class="table-warning"{% endif %}>
+                <td class="ps-3 text-nowrap">
+                  <span class="fw-semibold">{{ r.fecha|date:"d/m" }}</span>
+                  <span class="text-muted small text-capitalize">{{ r.fecha|date:"D" }}</span>
+                </td>
+                <td class="text-end fw-bold text-nowrap">$ {{ r.monto|floatformat:2|intcomma }}</td>
+                <td class="d-none d-md-table-cell small text-muted">{{ r.observaciones|default:"—" }}</td>
+                <td class="d-none d-lg-table-cell small text-muted">{{ r.cargado_por.first_name|default:"—" }}</td>
+                <td class="text-end pe-3 text-nowrap">
+                  <a href="{% url 'editar_recaudacion_efectivo' r.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill" title="Editar">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form method="post" action="{% url 'eliminar_recaudacion_efectivo' r.pk %}" class="d-inline"
+                        onsubmit="return confirm('¿Eliminar la recaudación del {{ r.fecha|date:"d/m/Y" }}?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill" title="Eliminar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-5">
+                  <i class="bi bi-cash-stack fs-2 d-block mb-2"></i>
+                  No hay recaudaciones cargadas en {{ mes_actual|date:"F Y" }}.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

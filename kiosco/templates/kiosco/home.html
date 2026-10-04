@@ -13,7 +13,7 @@
     <div class="row g-4 justify-content-center">
         
         {% if user.is_superuser %}
-            <div class="col-md-5 col-lg-3">
+            <div class="col-md-5 col-lg-4">
                 <div class="card card-custom p-4 text-center h-100 position-relative">
                     <div class="icon-box text-dark">
                         <i class="bi bi-cash-stack"></i> 
@@ -24,7 +24,7 @@
                 </div>
             </div>
 
-            <div class="col-md-5 col-lg-3">
+            <div class="col-md-5 col-lg-4">
                 <div class="card card-custom p-4 text-center h-100 position-relative">
                     <div class="icon-box text-primary">
                         <i class="bi bi-clock-history"></i> 
@@ -35,7 +35,7 @@
                 </div>
             </div>
 
-            <div class="col-md-5 col-lg-3">
+            <div class="col-md-5 col-lg-4">
                 <div class="card card-custom p-4 text-center h-100 position-relative">
                     <div class="icon-box text-success">
                         <i class="bi bi-cash-coin"></i>
@@ -45,9 +45,20 @@
                     <a href="{% url 'cargar_saldo' %}" class="btn btn-outline-success w-100 mt-auto stretched-link">Cargar</a>
                 </div>
             </div>
+
+            <div class="col-md-5 col-lg-4">
+                <div class="card card-custom p-4 text-center h-100 position-relative">
+                    <div class="icon-box text-warning">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <h4 class="fw-bold">Recaudaci&oacute;n en Efectivo</h4>
+                    <p class="text-muted small">Registrar el total cobrado en efectivo por d&iacute;a.</p>
+                    <a href="{% url 'recaudacion_efectivo' %}" class="btn btn-outline-warning w-100 mt-auto stretched-link">Entrar</a>
+                </div>
+            </div>
         {% endif %}
 
-        <div class="col-md-5 col-lg-3">
+        <div class="col-md-5 col-lg-4">
             <div class="card card-custom p-4 text-center h-100 position-relative">
                 <div class="icon-box text-danger">
                     <i class="bi bi-cart-plus"></i>

@@ -118,3 +118,34 @@ class MenuJardinUsuarioTest(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.context["tiene_jardin"])
         self.assertIsNone(r.context["menu_jardin"])
+
+
+class MenuCalendarSemanasTest(TestCase):
+    def setUp(self):
+        self.u = Perfil.objects.create_user(
+            email="cal@t.com", password="x", first_name="P", last_name="A")
+        self.c = Client()
+        self.c.force_login(self.u, backend=MB)
+
+    def test_por_defecto_muestra_4_semanas(self):
+        r = self.c.get(reverse("calendar_view"))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.context["semanas"]), 4)
+        self.assertEqual(r.context["semanas_mas"], 5)
+        self.assertIsNone(r.context["semanas_menos"])
+        self.assertContains(r, "Descargar PDF")
+        self.assertContains(r, "jspdf.umd.min.js")
+
+    def test_parametro_amplia_semanas(self):
+        r = self.c.get(reverse("calendar_view") + "?semanas=5")
+        self.assertEqual(len(r.context["semanas"]), 5)
+        self.assertEqual(r.context["semanas_mas"], 6)
+        self.assertEqual(r.context["semanas_menos"], 4)
+        self.assertContains(r, "Agregar semana")
+
+    def test_tope_maximo_y_valor_invalido(self):
+        r = self.c.get(reverse("calendar_view") + "?semanas=50")
+        self.assertEqual(len(r.context["semanas"]), 12)
+        self.assertIsNone(r.context["semanas_mas"])
+        r = self.c.get(reverse("calendar_view") + "?semanas=abc")
+        self.assertEqual(len(r.context["semanas"]), 4)

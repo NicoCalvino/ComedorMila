@@ -52,7 +52,9 @@ class ValeDiario(models.Model):
     fecha = models.DateField(null=False)
     cancelado = models.BooleanField(default=False)
     comentarios = models.CharField(max_length=50, null=True, blank=True, default="")
-    comprobante = models.ImageField(
+    # FileField (no ImageField) para aceptar también PDF. La validación del
+    # contenido está en comedor/validators.py y se aplica en los formularios.
+    comprobante = models.FileField(
         upload_to=picture_upload_to,
         verbose_name="Picture",
         default= "default/noticket.png",
@@ -262,7 +264,8 @@ class SolicitudPagoComedor(models.Model):
     # Detalle libre que carga el admin (ej. "Cuota de agosto, pagó la abuela").
     # Se suma al concepto del movimiento, así que la familia lo ve en su cuenta.
     descripcion = models.CharField(max_length=150, blank=True, default="")
-    comprobante = models.ImageField(
+    # Imagen o PDF (ver comedor/validators.py).
+    comprobante = models.FileField(
         upload_to=comprobante_pago_comedor_upload_to, null=True, blank=True,
     )
     estado = models.CharField(max_length=10, choices=ESTADOS, default=PENDIENTE)

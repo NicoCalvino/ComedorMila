@@ -1,4 +1,5 @@
 {% extends 'main/index.html' %}
+{% load static %}
 
 {% block Bienvenida %}
 
@@ -6,7 +7,24 @@
 
 {% block content %}
 <div class="container py-5">
-    <h2 class="text-center mb-4 text-muted">Menú Comedor</h2>
+  <div id="calendario-pdf">
+    <h2 class="text-center mb-3 text-muted">Menú Comedor</h2>
+    <div class="d-flex justify-content-end align-items-center gap-2 mb-2" data-pdf-ignorar>
+        <button type="button" id="btn-descargar-pdf" class="btn btn-outline-dark btn-sm me-auto">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Descargar PDF
+        </button>
+        <small class="text-muted me-1">{{ cantidad_semanas }} semana{{ cantidad_semanas|pluralize }}</small>
+        {% if semanas_menos %}
+        <a href="?semanas={{ semanas_menos }}" class="btn btn-outline-secondary btn-sm" title="Quitar una semana">
+            <i class="bi bi-dash-lg"></i>
+        </a>
+        {% endif %}
+        {% if semanas_mas %}
+        <a href="?semanas={{ semanas_mas }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Agregar semana
+        </a>
+        {% endif %}
+    </div>
 
     <div class="table-responsive shadow-sm rounded">
         <table class="table table-bordered align-middle mb-0 bg-white">
@@ -120,6 +138,7 @@
         </div>
     </div>
     {% endif %}
+  </div>
 
     <div class="text-center mt-5">
         <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
@@ -143,5 +162,60 @@
     tr:hover td {
         background-color: #f8f9fa;
     }
+    /* Copia del calendario que se usa para generar el PDF (ancho fijo). */
+    .calendario-pdf-render { background: #fff; padding: 16px; }
+    .calendario-pdf-render .table-responsive { overflow: visible !important; box-shadow: none !important; }
 </style>
+
+<script src="{% static 'vendor/pdf/html2canvas.min.js' %}"></script>
+<script src="{% static 'vendor/pdf/jspdf.umd.min.js' %}"></script>
+<script>
+document.getElementById('btn-descargar-pdf').addEventListener('click', function () {
+    const btn = this;
+    const original = document.getElementById('calendario-pdf');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando...';
+
+    // Copia del calendario con ancho fijo, fuera de la vista, para que la
+    // captura no dependa del tamaño de la pantalla (celular, zoom, scroll).
+    const ANCHO = 1100;
+    const clon = original.cloneNode(true);
+    clon.removeAttribute('id');
+    clon.querySelectorAll('[data-pdf-ignorar]').forEach(function (el) { el.remove(); });
+    clon.classList.add('calendario-pdf-render');
+    const contenedor = document.createElement('div');
+    contenedor.style.cssText = 'position:absolute;left:0;top:0;width:' + ANCHO + 'px;z-index:-1;pointer-events:none;';
+    contenedor.appendChild(clon);
+    document.body.appendChild(contenedor);
+
+    html2canvas(clon, {
+        scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false,
+        width: ANCHO, windowWidth: ANCHO, scrollX: 0, scrollY: -window.scrollY
+    }).then(function (canvas) {
+        // Una sola hoja A4 apaisada: escalamos la imagen para que entre entera.
+        const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const margen = 8;
+        const anchoPag = pdf.internal.pageSize.getWidth() - margen * 2;
+        const altoPag = pdf.internal.pageSize.getHeight() - margen * 2;
+        const escala = Math.min(anchoPag / canvas.width, altoPag / canvas.height);
+        const w = canvas.width * escala;
+        const h = canvas.height * escala;
+        const x = (pdf.internal.pageSize.getWidth() - w) / 2;
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, margen, w, h);
+
+        const hoy = new Date();
+        const fecha = String(hoy.getDate()).padStart(2, '0') + '-' +
+                      String(hoy.getMonth() + 1).padStart(2, '0') + '-' + hoy.getFullYear();
+        pdf.save('menu-comedor-' + fecha + '.pdf');
+    }).catch(function (err) {
+        console.error(err);
+        alert('No se pudo generar el PDF. Probá de nuevo.');
+    }).finally(function () {
+        contenedor.remove();
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    });
+});
+</script>
 {% endblock %}

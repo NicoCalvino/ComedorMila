@@ -1,5 +1,7 @@
+from decimal import Decimal
+from django.conf import settings
 from django.db import models
-from django.core.validators import MinValueValidator, MinLengthValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, MinLengthValidator
 from escuela.models import Cliente
 
 class Tarjeta(models.Model):
@@ -13,3 +15,32 @@ class Tarjeta(models.Model):
 
     def __str__(self):
         return f"{self.codigo}"
+
+
+class RecaudacionEfectivo(models.Model):
+    """Total recaudado en efectivo en el kiosco, una carga por día (solo admin)."""
+    # Tope de DecimalField(max_digits=10): un valor mayor rompe la lectura de la lista.
+    MONTO_MAXIMO = Decimal("99999999.99")
+
+    fecha = models.DateField(
+        unique=True,
+        error_messages={"unique": "Ya hay una recaudación cargada para esa fecha."},
+    )
+    monto = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01")), MaxValueValidator(MONTO_MAXIMO)],
+    )
+    observaciones = models.CharField(max_length=200, blank=True, default="")
+    cargado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    creado = models.DateTimeField(auto_now_add=True)
+    modificado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-fecha"]
+        verbose_name = "Recaudación en efectivo"
+        verbose_name_plural = "Recaudaciones en efectivo"
+
+    def __str__(self):
+        return f"{self.fecha:%d/%m/%Y} - $ {self.monto}"
