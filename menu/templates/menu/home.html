@@ -6,9 +6,7 @@
 
 {% block content %}
 <div class="container py-5">
-    
-<div class="row mb-4">
-    
+
     <div class="row mb-4">
         <div class="col-12 d-flex flex-wrap gap-2 justify-content-center">
             <a href="{% url 'lista_platos' %}" class="btn btn-primary px-4 shadow-sm border-0">
@@ -22,6 +20,9 @@
             </a>
             <a href="#" class="btn btn-excel px-4 shadow-sm border-0 text-white">
                 <i class="bi bi-file-earmark-excel me-2"></i>Importar Excel
+            </a>
+            <a href="{% url 'calendar_view' %}" class="btn btn-calendario px-4 shadow-sm border-0 text-white">
+                <i class="bi bi-calendar3 me-2"></i>Ver Calendario
             </a>
         </div>
     </div>
@@ -99,7 +100,6 @@
             </tbody>
         </table>
     </div>
-    <a href={% url 'calendar_view' %}>Calendario</a>
     <div class="text-center mt-5">
         <a href="{% url 'comedor_home' %}" class="btn btn-link text-muted text-decoration-none">
             <i class="bi bi-arrow-left me-2"></i>Volver a Comedor
@@ -203,6 +203,16 @@
     }
     .btn-jardin:hover {
         background-color: #0b7c72; /* Turquesa más oscuro */
+        color: white;
+    }
+
+    /* Estilo para el botón de Ver Calendario (Índigo) */
+    .btn-calendario {
+        background-color: #4f46e5;
+        transition: all 0.3s ease;
+    }
+    .btn-calendario:hover {
+        background-color: #3f37c9; /* Índigo más oscuro */
         color: white;
     }
 
