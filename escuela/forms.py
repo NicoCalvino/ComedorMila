@@ -107,3 +107,59 @@ class ClienteForm(forms.ModelForm):
                 ).order_by('nivel', 'curso')
             except (ValueError, TypeError):
                 pass
+
+
+class MovimientoColegioForm(forms.ModelForm):
+    """Alta y edición de movimientos de la cuenta del colegio.
+
+    Reglas: un solo canon por colegio por mes, y no se puede tocar un mes
+    marcado como pagado (ni mover un movimiento hacia/desde uno).
+    """
+    class Meta:
+        model = MovimientoColegio
+        fields = ["tipo", "fecha", "concepto", "monto"]
+        widgets = {
+            "tipo": forms.Select(attrs={"class": "form-select"}),
+            "fecha": forms.DateInput(attrs={"class": "form-control", "type": "date"}, format="%Y-%m-%d"),
+            "concepto": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej: Café sala de profesores"}),
+            "monto": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01"}),
+        }
+
+    def __init__(self, *args, colegio=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.colegio = colegio or (self.instance.colegio if self.instance.pk else None)
+        # Fecha original (antes de aplicar lo que viene en el POST).
+        self._fecha_original = self.instance.fecha if self.instance.pk else None
+
+    def clean(self):
+        from escuela.cuenta_colegio import mes_pagado, nombre_mes
+        cleaned_data = super().clean()
+        fecha = cleaned_data.get("fecha")
+        tipo = cleaned_data.get("tipo")
+        if not fecha or self.colegio is None:
+            return cleaned_data
+
+        if self._fecha_original and mes_pagado(self.colegio, self._fecha_original.year, self._fecha_original.month):
+            raise forms.ValidationError(
+                f"{nombre_mes(self._fecha_original.year, self._fecha_original.month)} está marcado como pagado. "
+                "Desmarcalo para poder modificar sus movimientos."
+            )
+        if mes_pagado(self.colegio, fecha.year, fecha.month):
+            raise forms.ValidationError(
+                f"{nombre_mes(fecha.year, fecha.month)} está marcado como pagado. "
+                "Desmarcalo para poder cargar movimientos en ese mes."
+            )
+
+        if tipo == MovimientoColegio.CANON:
+            otros = MovimientoColegio.objects.filter(
+                colegio=self.colegio, tipo=MovimientoColegio.CANON,
+                fecha__year=fecha.year, fecha__month=fecha.month,
+            )
+            if self.instance.pk:
+                otros = otros.exclude(pk=self.instance.pk)
+            if otros.exists():
+                raise forms.ValidationError(
+                    f"Ya hay un canon cargado para {nombre_mes(fecha.year, fecha.month)}. "
+                    "Editá ese en lugar de cargar otro."
+                )
+        return cleaned_data

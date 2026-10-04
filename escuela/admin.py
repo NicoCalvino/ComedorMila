@@ -31,3 +31,19 @@ class ClienteAdmin(admin.ModelAdmin):
     search_fields = ("nombre","apellido")
     #Orden por defecto
     ordering = ("apellido","nombre")
+
+
+@admin.register(MovimientoColegio)
+class MovimientoColegioAdmin(admin.ModelAdmin):
+    list_display = ("fecha", "colegio", "tipo", "concepto", "monto")
+    list_filter = ("tipo", "colegio")
+    search_fields = ("concepto",)
+    date_hierarchy = "fecha"
+    ordering = ("-fecha", "-id")
+
+
+@admin.register(MesColegioPagado)
+class MesColegioPagadoAdmin(admin.ModelAdmin):
+    list_display = ("colegio", "year", "month", "monto_pagado", "fecha_pago")
+    list_filter = ("colegio",)
+    ordering = ("-year", "-month")

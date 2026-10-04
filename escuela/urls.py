@@ -1,5 +1,9 @@
 from django.urls import path
 from escuela.views import *
+from escuela.views_cuenta_colegio import (
+    CuentaColegioView, EditarMovimientoColegioView, EliminarMovimientoColegioView,
+    MarcarMesPagadoColegioView, DesmarcarMesPagadoColegioView,
+)
 
 urlpatterns = [
     path("home_colegios", EscuelaHomeView.as_view(), name="home_colegios"),
@@ -21,4 +25,10 @@ urlpatterns = [
     path("actualizar_cliente/<int:pk>",ActualizarClienteView.as_view(), name="actualizar_cliente"),
     path("eliminar_cliente/<int:pk>",EliminarClienteView.as_view(), name="eliminar_cliente"),
     path('ajax/cargar-cursos/', CargarCursosView.as_view(), name='ajax_cargar_cursos'),
+
+    path("cuenta_colegio", CuentaColegioView.as_view(), name="cuenta_colegio"),
+    path("cuenta_colegio/editar/<int:pk>", EditarMovimientoColegioView.as_view(), name="editar_movimiento_colegio"),
+    path("cuenta_colegio/eliminar/<int:pk>", EliminarMovimientoColegioView.as_view(), name="eliminar_movimiento_colegio"),
+    path("cuenta_colegio/marcar_pagado", MarcarMesPagadoColegioView.as_view(), name="marcar_mes_pagado_colegio"),
+    path("cuenta_colegio/desmarcar_pagado", DesmarcarMesPagadoColegioView.as_view(), name="desmarcar_mes_pagado_colegio"),
 ]
