@@ -72,9 +72,14 @@ class TransaccionListView(SuperUserRequiredMixin, ListView):
     model=Transaccion
     template_name = "transacciones/lista_transacciones.html"
     context_object_name= "transacciones"
+    # Antes traía TODO el histórico de una y, por cada fila, 2 consultas extra
+    # (tarjeta y cliente): con ~2500 movimientos eran ~5000 consultas por carga.
+    paginate_by = 50
 
     def get_queryset(self):
-        queryset = super().get_queryset().order_by('-fecha')
+        queryset = (super().get_queryset()
+                    .select_related('tarjeta__cliente')
+                    .order_by('-fecha', '-id'))
         filtro_tipo = self.request.GET.get('concepto', 'todo')
         if filtro_tipo == 'carga':
             queryset = queryset.filter(concepto="CARGA SALDO")
@@ -82,6 +87,12 @@ class TransaccionListView(SuperUserRequiredMixin, ListView):
             queryset = queryset.filter(concepto="COMPRA")
 
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Para que los links de paginación mantengan el filtro elegido.
+        context['concepto_actual'] = self.request.GET.get('concepto', 'todo')
+        return context
     
     def handle_no_permission(self):
         messages.error(self.request, "Acceso restringido solo para administradores.")
