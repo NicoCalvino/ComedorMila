@@ -72,6 +72,19 @@ class FeriadoCreateView(SuperUserRequiredMixin, CreateView):
         
         return reverse_lazy("lista_feriados")
 
+class FeriadoUpdateView(SuperUserRequiredMixin, UpdateView):
+    model = Feriado
+    template_name = "menu/crear_feriado.html"
+    form_class = FeriadoForm
+
+    def get_success_url(self):
+        return reverse_lazy("lista_feriados")
+
+class FeriadoDeleteView(SuperUserRequiredMixin, DeleteView):
+    model = Feriado
+    template_name = "menu/eliminar_feriado.html"
+    success_url = reverse_lazy("lista_feriados")
+
 class PlatoListView(SuperUserRequiredMixin, ListView):
     model = Plato
     template_name = "menu/lista_platos.html"

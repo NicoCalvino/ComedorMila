@@ -15,5 +15,7 @@ urlpatterns = [
     path("eliminar_plato/<int:pk>", PlatoDeleteView.as_view(), name="eliminar_plato"),
 
     path("feriados", FeriadoListView.as_view(), name="lista_feriados"),
-    path("crear_feriado", FeriadoCreateView.as_view(), name="crear_feriado")
+    path("crear_feriado", FeriadoCreateView.as_view(), name="crear_feriado"),
+    path("editar_feriado/<int:pk>", FeriadoUpdateView.as_view(), name="editar_feriado"),
+    path("eliminar_feriado/<int:pk>", FeriadoDeleteView.as_view(), name="eliminar_feriado"),
 ]
